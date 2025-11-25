@@ -32,28 +32,13 @@ export function performHitTest(
 
 		if (colliderIntersects.length > 0) {
 			const intersected = colliderIntersects[0].object
-			console.log('[HitTest] Hit collider:', {
-				type: intersected.constructor.name,
-				userData: intersected.userData,
-			})
 
 			// Traverse up to find handle identification
 			let currentObject: THREE.Object3D | null = intersected
 			while (currentObject && currentObject !== widget) {
-				console.log('[HitTest] Checking object:', {
-					type: currentObject.constructor.name,
-					userData: currentObject.userData,
-					isHitTest: currentObject.userData.isHitTest,
-					isXAxis: currentObject.userData.isXAxis,
-					isYAxis: currentObject.userData.isYAxis,
-					isXHandle: currentObject.userData.isXHandle,
-					isYHandle: currentObject.userData.isYHandle,
-				})
-
 				// Check colliders (isHitTest)
 				if (currentObject.userData.isHitTest) {
 					if (currentObject.userData.isXAxis || currentObject.userData.isXHandle) {
-						console.log('[HitTest] Detected X axis collider')
 						return {
 							type: 'resize-handle',
 							object: intersected,
@@ -62,7 +47,6 @@ export function performHitTest(
 						}
 					}
 					if (currentObject.userData.isYAxis || currentObject.userData.isYHandle) {
-						console.log('[HitTest] Detected Y axis collider')
 						return {
 							type: 'resize-handle',
 							object: intersected,
@@ -71,7 +55,6 @@ export function performHitTest(
 						}
 					}
 					if (currentObject.userData.isCenterHandle) {
-						console.log('[HitTest] Detected center collider')
 						return {
 							type: 'resize-handle',
 							object: intersected,
@@ -87,7 +70,6 @@ export function performHitTest(
 		// Priority 2: Widget body (any other part of widget that's not a collider)
 		const widgetIntersects = raycaster.intersectObject(widget, true)
 		if (widgetIntersects.length > 0) {
-			console.log('[HitTest] Hit widget body (non-collider)')
 			return {
 				type: 'widget-body',
 				object: widgetIntersects[0].object,

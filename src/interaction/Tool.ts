@@ -1,5 +1,7 @@
 import * as THREE from 'three'
-import { EditorState, useEditorStore } from '@/store/editorStore'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { useEditorStore } from '@/store/editorStore'
+import { normalizeMousePosition } from './utils/mousePosition'
 
 export interface NormalizedPointerEvent {
 	clientX: number
@@ -9,10 +11,12 @@ export interface NormalizedPointerEvent {
 }
 
 export interface ToolContext {
-	store: typeof useEditorStore
+	store: {
+		getState: () => ReturnType<typeof useEditorStore>
+	}
 	renderer: THREE.WebGLRenderer
 	camera: THREE.PerspectiveCamera
-	controls: any
+	controls: OrbitControls
 	raycaster: THREE.Raycaster
 	mouse: THREE.Vector2
 }
@@ -29,10 +33,13 @@ export abstract class Tool {
 	abstract onPointerUp(event: NormalizedPointerEvent): void
 
 	protected updateMousePosition(event: NormalizedPointerEvent): void {
-		const rect = this.context.renderer.domElement.getBoundingClientRect()
-		this.context.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-		this.context.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-		this.context.raycaster.setFromCamera(this.context.mouse, this.context.camera)
+		normalizeMousePosition(
+			event,
+			this.context.renderer,
+			this.context.camera,
+			this.context.raycaster,
+			this.context.mouse
+		)
 	}
 }
 

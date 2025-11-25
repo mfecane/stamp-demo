@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { Tool, NormalizedPointerEvent } from '../Tool'
 import { performHitTest } from '../hitTesting'
 import { calculateTangentVectors } from '@/lib/utils'
+import { CanvasRenderer } from '@/services/CanvasRenderer'
 
 export class SelectionTool extends Tool {
 	onPointerDown(event: NormalizedPointerEvent): void {
@@ -40,7 +41,6 @@ export class SelectionTool extends Tool {
 			if (intersection.uv && storeState.sourceImage && storeState.canvas) {
 				const uv = intersection.uv.clone()
 				const canvas = storeState.canvas
-				const ctx = canvas.getContext('2d')!
 				const sourceImage = storeState.sourceImage
 
 				const faceIndex = intersection.faceIndex ?? 0
@@ -59,30 +59,13 @@ export class SelectionTool extends Tool {
 
 				storeState.setStampInfo(stampInfo)
 
-				// Clear and redraw
-				ctx.fillStyle = '#ffffff'
-				ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-				const x = uv.x * canvas.width
-				const y = (1 - uv.y) * canvas.height
-
-				// Ensure image is loaded before drawing
-				if (sourceImage.complete && sourceImage.naturalWidth > 0) {
-					ctx.drawImage(sourceImage, x - copySize / 2, y - copySize / 2, copySize, copySize)
-				} else {
-					sourceImage.onload = () => {
-						ctx.drawImage(sourceImage, x - copySize / 2, y - copySize / 2, copySize, copySize)
-						const currentState = this.context.store.getState()
-						if (currentState.texture) {
-							currentState.texture.needsUpdate = true
-						}
-					}
-				}
+				// Draw stamp using CanvasRenderer
+				CanvasRenderer.drawStamp(canvas, sourceImage, uv, copySize, copySize)
 
 				// Force texture update
 				const texture = storeState.texture
 				if (texture) {
-					texture.needsUpdate = true
+					CanvasRenderer.updateTexture(texture)
 					
 					// Force material update if it's using the texture
 					const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial

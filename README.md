@@ -61,7 +61,8 @@ npm run preview
 src/
 ├── components/          # React components
 │   ├── GuiPanel.tsx    # Main UI panel for image upload
-│   └── ui/             # Reusable UI components
+│   ├── ThreeScene.tsx  # Three.js scene setup and rendering
+│   └── ui/             # Reusable UI components (shadcn/ui)
 ├── interaction/         # Interaction system
 │   ├── InteractionManager.ts  # Main interaction coordinator
 │   ├── Tool.ts         # Base tool interface
@@ -75,10 +76,17 @@ src/
 │   ├── geometries.ts   # Custom Three.js geometries
 │   ├── utils.ts        # General utilities
 │   └── widget.ts       # Widget rendering and hit testing
+├── services/           # Service classes
+│   ├── CanvasRenderer.ts
+│   └── SceneInitializer.ts
 ├── store/              # State management
-│   └── editorStore.ts  # Zustand store
+│   ├── composedStore.ts
+│   ├── editorStore.ts  # Main Zustand store
+│   ├── sceneStore.ts
+│   ├── stampStore.ts
+│   ├── textureStore.ts
+│   └── widgetStore.ts
 ├── App.tsx             # Main app component
-├── ThreeScene.tsx      # Three.js scene setup and rendering
 └── main.tsx            # Entry point
 ```
 

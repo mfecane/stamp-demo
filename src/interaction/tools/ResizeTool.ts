@@ -1,5 +1,8 @@
 import * as THREE from 'three'
 import { Tool, NormalizedPointerEvent } from '../Tool'
+import { normalizeMousePosition } from '../utils/mousePosition'
+import { updateCameraMatrix } from '../utils/cameraUpdates'
+import { RESIZE_CONSTANTS } from './constants'
 
 export class ResizeTool extends Tool {
 	private initialMousePos = new THREE.Vector2()
@@ -13,28 +16,22 @@ export class ResizeTool extends Tool {
 	}
 
 	onPointerDown(event: NormalizedPointerEvent): void {
-		console.log('[ResizeTool] onPointerDown - handleType:', this.handleType)
 		const storeState = this.context.store.getState()
 		const camera = storeState.camera || this.context.camera
-		camera.updateMatrixWorld()
+		updateCameraMatrix(camera)
 
 		// Update mouse position with current camera
-		const rect = this.context.renderer.domElement.getBoundingClientRect()
-		this.context.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-		this.context.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-		this.context.raycaster.setFromCamera(this.context.mouse, camera)
+		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
 
 		this.initialMousePos.copy(this.context.mouse)
 
 		const stampInfo = storeState.stampInfo
 		if (!stampInfo) {
-			console.warn('[ResizeTool] No stampInfo available')
 			return
 		}
 
 		const widget = storeState.widget
 		if (!widget) {
-			console.warn('[ResizeTool] No widget available')
 			return
 		}
 
@@ -43,28 +40,21 @@ export class ResizeTool extends Tool {
 			y: stampInfo.sizeY,
 		}
 
-		console.log('[ResizeTool] Initial size:', this.initialSize, 'Controls enabled before:', this.context.controls.enabled)
 		this.isActive = true
 		this.context.controls.enabled = false
-		console.log('[ResizeTool] ResizeTool activated, controls disabled. isActive:', this.isActive)
 	}
 
 	onPointerMove(event: NormalizedPointerEvent): void {
 		if (!this.isActive) {
-			console.log('[ResizeTool] onPointerMove - Tool not active, ignoring')
 			return
 		}
-		console.log('[ResizeTool] onPointerMove - handleType:', this.handleType, 'isActive:', this.isActive)
 
 		const storeState = this.context.store.getState()
 		const camera = storeState.camera || this.context.camera
-		camera.updateMatrixWorld()
+		updateCameraMatrix(camera)
 
 		// Update mouse position with current camera
-		const rect = this.context.renderer.domElement.getBoundingClientRect()
-		this.context.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-		this.context.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-		this.context.raycaster.setFromCamera(this.context.mouse, camera)
+		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
 		const deltaMouse = new THREE.Vector2(
 			this.context.mouse.x - this.initialMousePos.x,
 			this.context.mouse.y - this.initialMousePos.y
@@ -107,23 +97,23 @@ export class ResizeTool extends Tool {
 
 		if (this.handleType === 'x') {
 			const uComponent = deltaMouse.dot(screenU)
-			newSizeX = this.initialSize.x * (1 + uComponent * 3)
-			newSizeX = Math.max(10, Math.min(canvas.width, newSizeX))
+			newSizeX = this.initialSize.x * (1 + uComponent * RESIZE_CONSTANTS.SCALING_FACTOR)
+			newSizeX = Math.max(RESIZE_CONSTANTS.MIN_SIZE, Math.min(canvas.width, newSizeX))
 			newSizeY = this.initialSize.y
 		} else if (this.handleType === 'y') {
 			const vComponent = deltaMouse.dot(screenV)
-			newSizeY = this.initialSize.y * (1 + vComponent * 3)
-			newSizeY = Math.max(10, Math.min(canvas.height, newSizeY))
+			newSizeY = this.initialSize.y * (1 + vComponent * RESIZE_CONSTANTS.SCALING_FACTOR)
+			newSizeY = Math.max(RESIZE_CONSTANTS.MIN_SIZE, Math.min(canvas.height, newSizeY))
 			newSizeX = this.initialSize.x
 		} else if (this.handleType === 'center') {
 			const uComponent = deltaMouse.dot(screenU)
 			const vComponent = deltaMouse.dot(screenV)
 			const avgComponent = (uComponent + vComponent) / 2
-			const scaleFactor = 1 + avgComponent * 3
+			const scaleFactor = 1 + avgComponent * RESIZE_CONSTANTS.SCALING_FACTOR
 			newSizeX = this.initialSize.x * scaleFactor
 			newSizeY = this.initialSize.y * scaleFactor
-			newSizeX = Math.max(10, Math.min(canvas.width, newSizeX))
-			newSizeY = Math.max(10, Math.min(canvas.height, newSizeY))
+			newSizeX = Math.max(RESIZE_CONSTANTS.MIN_SIZE, Math.min(canvas.width, newSizeX))
+			newSizeY = Math.max(RESIZE_CONSTANTS.MIN_SIZE, Math.min(canvas.height, newSizeY))
 		}
 
 		// Update stamp size in store
@@ -138,10 +128,8 @@ export class ResizeTool extends Tool {
 	}
 
 	onPointerUp(_event: NormalizedPointerEvent): void {
-		console.log('[ResizeTool] onPointerUp - Deactivating, wasActive:', this.isActive)
 		this.isActive = false
 		this.context.controls.enabled = true
-		console.log('[ResizeTool] ResizeTool deactivated, controls re-enabled')
 	}
 }
 

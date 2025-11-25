@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import ThreeScene from './ThreeScene'
-import GuiPanel from './components/GuiPanel'
-import { useEditorStore } from './store/editorStore'
+import ThreeScene from '@/components/ThreeScene'
+import GuiPanel from '@/components/GuiPanel'
+import { useEditorStore } from '@/store/editorStore'
 
 function App() {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const isImageReady = useEditorStore((state) => state.isImageReady)
-  const stampInfo = useEditorStore((state) => state.stampInfo)
+  const store = useEditorStore()
+  const isImageReady = store.isImageReady
+  const stampInfo = store.stampInfo
   const isStampPlaced = stampInfo !== null
 
   return (
