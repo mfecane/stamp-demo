@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+
+- don't forget to apply @.editorconfig
+- Force absolute imports (from common root configured as @)
+- Do **not** use `.cursorrules` file — it is deprecated. Use `.cursor/rules/*.mdc` files instead.

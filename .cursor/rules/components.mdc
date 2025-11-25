@@ -1,0 +1,39 @@
+---
+alwaysApply: true
+---
+
+# 🧩 Component Architecture Rule (MDC)
+
+## Component Simplicity
+- Keep components **simple and focused** — each component should have a single, clear responsibility
+- Components should primarily handle **presentation and user interaction**, not business logic
+- If a component exceeds ~200 lines or has more than 5-7 state variables, consider splitting it
+
+## Logic Extraction to Hooks
+- Extract **data fetching** (API calls, loading states, error handling) to custom hooks
+- Extract **complex state management** (multiple related state variables, derived state) to hooks
+- Extract **side effects** (polling, subscriptions, cleanup logic) to hooks
+- Extract **business logic** (calculations, transformations, validation) to hooks or utility functions
+- Extract **event handlers with complex logic** (not just simple state updates) to hooks
+- Hooks should return clean interfaces: `{ data, loading, error, actions }` patterns
+
+## Component Composition
+- Split large components into **smaller, reusable sub-components**
+- Extract **repeated UI patterns** into separate components, even if only used once initially
+- Create **presentational components** that receive data via props (no internal state/effects)
+- Prefer **composition over configuration** — use multiple small components rather than one large component with many props
+- Extract **modal/dialog logic** into separate components when they have their own state/effects
+
+## When to Extract
+- **Extract to hook**: Data fetching, complex state, side effects, business logic
+- **Extract to component**: Repeated UI patterns, distinct visual sections, modals/dialogs, form sections
+- **Keep in component**: Simple state (1-2 variables), simple event handlers, conditional rendering
+
+## Anti-patterns to Avoid
+- ❌ Multiple `useEffect` hooks with complex logic in a single component
+- ❌ Components that mix data fetching, state management, and rendering
+- ❌ Inline complex calculations or transformations in JSX
+- ❌ Duplicated logic across multiple components (extract to shared hook/utility)
+- ❌ Components that handle multiple unrelated concerns
+
+@*.tsx

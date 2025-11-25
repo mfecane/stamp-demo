@@ -1,0 +1,109 @@
+import * as THREE from 'three'
+import { Tool, NormalizedPointerEvent } from '../Tool'
+import { performHitTest } from '../hitTesting'
+import { calculateTangentVectors } from '@/lib/utils'
+
+export class SelectionTool extends Tool {
+	onPointerDown(event: NormalizedPointerEvent): void {
+		this.updateMousePosition(event)
+
+		// Get current store state
+		const storeState = this.context.store.getState()
+		const widget = storeState.widget
+		const tube = storeState.tube
+
+		// Early return if source image is not available
+		if (!storeState.sourceImage) {
+			return
+		}
+
+		if (!tube) {
+			return
+		}
+
+		// Perform hit test
+		const hitResult = performHitTest(this.context.raycaster, widget, tube)
+
+		// If clicked on widget, don't place new stamp
+		if (hitResult.type === 'resize-handle' || hitResult.type === 'widget-body') {
+			return
+		}
+
+		// If clicked on tube, place stamp
+		if (hitResult.type === 'selectable-object' && hitResult.intersection) {
+			const intersection = hitResult.intersection
+			const point = intersection.point
+			const normal = intersection.normal
+				? intersection.normal.clone().transformDirection(tube.matrixWorld)
+				: new THREE.Vector3(0, 1, 0)
+
+			if (intersection.uv && storeState.sourceImage && storeState.canvas) {
+				const uv = intersection.uv.clone()
+				const canvas = storeState.canvas
+				const ctx = canvas.getContext('2d')!
+				const sourceImage = storeState.sourceImage
+
+				const faceIndex = intersection.faceIndex ?? 0
+				const { uAxis, vAxis } = calculateTangentVectors(tube.geometry, faceIndex, normal)
+
+				const copySize = canvas.width * 0.1
+
+				const stampInfo = {
+					uv,
+					sizeX: copySize,
+					sizeY: copySize,
+					uAxis,
+					vAxis,
+					normal,
+				}
+
+				storeState.setStampInfo(stampInfo)
+
+				// Clear and redraw
+				ctx.fillStyle = '#ffffff'
+				ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+				const x = uv.x * canvas.width
+				const y = (1 - uv.y) * canvas.height
+
+				// Ensure image is loaded before drawing
+				if (sourceImage.complete && sourceImage.naturalWidth > 0) {
+					ctx.drawImage(sourceImage, x - copySize / 2, y - copySize / 2, copySize, copySize)
+				} else {
+					sourceImage.onload = () => {
+						ctx.drawImage(sourceImage, x - copySize / 2, y - copySize / 2, copySize, copySize)
+						const currentState = this.context.store.getState()
+						if (currentState.texture) {
+							currentState.texture.needsUpdate = true
+						}
+					}
+				}
+
+				// Force texture update
+				const texture = storeState.texture
+				if (texture) {
+					texture.needsUpdate = true
+					
+					// Force material update if it's using the texture
+					const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
+					if (tubeMaterial && tubeMaterial.map === texture) {
+						tubeMaterial.needsUpdate = true
+					}
+				}
+
+				// Create widget at intersection point
+				storeState.createWidget(point, normal, uAxis, vAxis, storeState.scene!)
+				storeState.setSelectedObject(tube)
+			}
+		}
+	}
+
+	onPointerMove(_event: NormalizedPointerEvent): void {
+		// Selection tool doesn't need move handling
+	}
+
+	onPointerUp(_event: NormalizedPointerEvent): void {
+		// Selection is complete, return to idle
+	}
+}
+

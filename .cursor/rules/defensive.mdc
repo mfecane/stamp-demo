@@ -1,0 +1,75 @@
+---
+alwaysApply: true
+---
+
+# Code Quality Rules (MDC)
+
+## No Defensive Programming
+
+Defensive programming patterns are forbidden. Errors must propagate, not be hidden.
+
+**Forbidden:**
+- Fallbacks, silent catches, or defensive wrappers
+- Hiding or suppressing exceptions
+- `try/catch` blocks that swallow errors or return default values
+- Vague guards like `if (!x) return null` unless null is a valid, expected state
+- Default values returned from error handlers
+- "Graceful degradation" that masks failures
+- `?.` optional chaining used defensively to avoid errors
+- `||` fallbacks for error cases
+- Logging errors without re-throwing them
+- Returning empty arrays/objects/null when errors occur
+
+**Required:**
+- Let errors propagate — errors reveal where the real problem is
+- Throw explicitly and early; prefer clear failure over uncertain state
+- Use `try/catch` only if adding context and then re-throwing the error
+- Fail fast and visibly
+- If you catch an error, you must re-throw it
+- If you guard against null/undefined, you must throw if it's unexpected
+
+**Examples:**
+
+```typescript
+// FORBIDDEN: Silent catch with fallback
+try {
+  return await fetchData();
+} catch (error) {
+  console.error(error);
+  return []; // NO! Let it throw
+}
+
+// FORBIDDEN: Defensive optional chaining
+const value = data?.nested?.property || defaultValue; // NO! If data is wrong, fail
+
+// REQUIRED: Let errors propagate
+const data = await fetchData(); // If this fails, let it throw
+
+// REQUIRED: Add context then re-throw
+try {
+  return await fetchData();
+} catch (error) {
+  throw new Error(`Failed to fetch data: ${error.message}`, { cause: error });
+}
+
+// REQUIRED: Explicit validation
+if (!user) {
+  throw new Error('User is required');
+}
+```
+
+## No Provisional Functionality
+
+Do not create provisional, placeholder, or incomplete functionality.
+
+**Forbidden:**
+- Provisional, placeholder, or incomplete functionality
+- TODO comments for future features that aren't being implemented now
+- Hooks, components, or utilities that are "for later use" or "when X is available"
+- Code that is commented out with notes about future implementation
+- Scaffolding for features that aren't ready
+
+**Required:**
+- Only implement features that are fully functional and ready for use
+- If a feature isn't ready, don't create scaffolding for it — implement it when it's needed
+- Remove any existing provisional code, placeholders, or incomplete implementations

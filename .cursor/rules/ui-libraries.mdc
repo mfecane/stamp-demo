@@ -1,0 +1,11 @@
+---
+globs: *.tsx
+alwaysApply: false
+---
+# 🎨 UI Libraries Rule (MDC)
+
+- Use **lucide-react** icons for all icon needs — do not create custom icon components unless absolutely necessary
+- Use **shadcn/ui** components from `@/components/ui` for buttons, dialogs, forms, and other UI primitives
+- Prefer shadcn components over custom implementations for common UI patterns
+- When implementing new components or layouts, check shadcn/ui documentation first before building from scratch
+- Mind typography visual hierarchy — use appropriate font sizes, weights, spacing, and color to create clear information hierarchy

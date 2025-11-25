@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+
+# 🔍 Architecture Sanity Check Rule
+
+Before implementing system design decisions (API design, data access patterns, caching strategies, state management, resource handling), verify the approach against industry standards and established patterns for the problem domain.
+
+Flag any design decision that deviates significantly from proven approaches without clear justification. Question decisions that seem unnecessarily complex, inconsistent with the rest of the system, or that fight against standard patterns rather than leveraging them.
+
+When flagging, be specific about what standard is being violated and suggest the conventional approach. Acknowledge valid reasons for deviation, but ensure the decision is intentional and documented.
+
+The goal is to ensure system design decisions are thoughtful, maintainable, and aligned with proven patterns rather than reinventing solutions that already exist.

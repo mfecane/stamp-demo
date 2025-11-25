@@ -1,0 +1,43 @@
+---
+alwaysApply: true
+---
+
+# 🎯 Project Overview
+
+This is a **3D image stamping demo** application built with React and Three.js.
+
+## Core Functionality
+
+### Image Upload & Placement
+- User uploads an image via UI control
+- User clicks on a mesh to place a stamp at the clicked point's UV coordinates
+- The image is drawn to a texture at the placement location
+
+### Interactive Widget System
+- When a stamp is placed, a **widget** is displayed at the point of contact
+- The widget has **two axes (X and Y)** aligned with the image orientation in 3D space
+- Each axis end has **invisible colliders** that are larger than the visual elements for easier hit testing
+
+### Interaction Modes
+
+#### Resize Mode
+- User clicks on a widget axis collider and drags to resize along that axis
+- The stamp/image is resized proportionally along the selected axis
+
+#### Orbit Mode
+- User clicks and drags anywhere else (not on widget colliders)
+- Orbit controls are activated and camera position is manipulated
+- This allows the user to navigate the 3D scene
+
+## Technical Stack
+- **React** - UI framework
+- **Three.js** - 3D rendering and scene management
+- **TypeScript** - Type safety
+- **Zustand** (likely) - State management (based on store directory)
+
+## Key Components
+- `ThreeScene.tsx` - Main 3D scene component
+- `InteractionManager.ts` - Handles interaction modes and tool switching
+- `editorStore.ts` - Application state management
+- `widget.ts` - Widget rendering and hit testing logic
+- Tools: `DragTool`, `OrbitTool`, `ResizeTool`, `SelectionTool`
