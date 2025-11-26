@@ -1,53 +1,46 @@
 import { Tool, ToolContext } from './Tool'
-import { HitResult } from './hitTesting'
-import { OrbitTool } from './tools/OrbitTool'
-import { DragTool } from './tools/DragTool'
-import { ResizeTool } from './tools/ResizeTool'
-import { SelectionTool } from './tools/SelectionTool'
-import { MoveTool } from './tools/MoveTool'
-import { RotateTool } from './tools/RotateTool'
+import type { HitResult } from '@/types/hitResult'
+import type { EditorState } from '@/store/composedStore'
+import type { IToolStrategy, InteractionState } from './tools/strategies/ToolStrategy'
+import { ResizeToolStrategy } from './tools/strategies/ResizeToolStrategy'
+import { RotateToolStrategy } from './tools/strategies/RotateToolStrategy'
+import { MoveToolStrategy } from './tools/strategies/MoveToolStrategy'
+import { DragToolStrategy } from './tools/strategies/DragToolStrategy'
+import { SelectionToolStrategy } from './tools/strategies/SelectionToolStrategy'
+import { OrbitToolStrategy } from './tools/strategies/OrbitToolStrategy'
 
 export interface IToolFactory {
-	createTool(hitResult: HitResult, context: ToolContext, storeState: any): Tool | null
-	getStateForTool(hitResult: HitResult, storeState: any): 'idle' | 'orbit' | 'drag' | 'resize' | 'move' | 'rotate'
+	createTool(hitResult: HitResult, context: ToolContext, storeState: EditorState): Tool | null
+	getStateForTool(hitResult: HitResult, storeState: EditorState): InteractionState
 }
 
+/**
+ * Factory for creating tools based on hit results.
+ * Uses the Strategy pattern to allow extensible tool creation without modifying this class.
+ */
 export class ToolFactory implements IToolFactory {
-	createTool(hitResult: HitResult, context: ToolContext, storeState: any): Tool | null {
-		if (hitResult.type === 'resize-handle') {
-			return new ResizeTool(context, hitResult.handleType)
-		} else if (hitResult.type === 'rotate-handle') {
-			return new RotateTool(context)
-		} else if (hitResult.type === 'move-handle') {
-			return new MoveTool(context, hitResult.handleType)
-		} else if (hitResult.type === 'widget-body') {
-			return new DragTool(context)
-		} else if (hitResult.type === 'selectable-object') {
-			if (storeState.isImageReady) {
-				return new SelectionTool(context)
-			} else {
-				return new OrbitTool(context)
-			}
-		} else if (hitResult.type === 'empty') {
-			return new OrbitTool(context)
-		}
-		return null
+	private strategies: IToolStrategy[]
+
+	constructor() {
+		// Order matters: more specific strategies should come first
+		this.strategies = [
+			new ResizeToolStrategy(),
+			new RotateToolStrategy(),
+			new MoveToolStrategy(),
+			new DragToolStrategy(),
+			new SelectionToolStrategy(),
+			new OrbitToolStrategy(), // Most general, should be last
+		]
 	}
 
-	getStateForTool(hitResult: HitResult, storeState: any): 'idle' | 'orbit' | 'drag' | 'resize' | 'move' | 'rotate' {
-		if (hitResult.type === 'resize-handle') {
-			return 'resize'
-		} else if (hitResult.type === 'rotate-handle') {
-			return 'rotate'
-		} else if (hitResult.type === 'move-handle') {
-			return 'move'
-		} else if (hitResult.type === 'widget-body') {
-			return 'drag'
-		} else if (hitResult.type === 'selectable-object') {
-			return storeState.isImageReady ? 'idle' : 'orbit'
-		} else {
-			return 'orbit'
-		}
+	createTool(hitResult: HitResult, context: ToolContext, storeState: EditorState): Tool | null {
+		const strategy = this.strategies.find((s) => s.canHandle(hitResult, storeState))
+		return strategy ? strategy.createTool(context, hitResult) : null
+	}
+
+	getStateForTool(hitResult: HitResult, storeState: EditorState): InteractionState {
+		const strategy = this.strategies.find((s) => s.canHandle(hitResult, storeState))
+		return strategy ? strategy.getState() : 'orbit'
 	}
 }
 

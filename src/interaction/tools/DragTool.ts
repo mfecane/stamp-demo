@@ -12,7 +12,8 @@ export class DragTool extends Tool {
 
 		const widget = this.context.store.widget
 		if (widget) {
-			widget.getWorldPosition(this.initialPosition)
+			const widgetGroup = widget.getGroup()
+			widgetGroup.getWorldPosition(this.initialPosition)
 			this.isActive = true
 			this.context.controls.enabled = false
 		}
@@ -30,6 +31,7 @@ export class DragTool extends Tool {
 		const widget = this.context.store.widget
 		if (!widget) return
 
+		const widgetGroup = widget.getGroup()
 		// Calculate movement in world space based on camera view
 		const movement = new THREE.Vector3()
 		movement.x = deltaMouse.x * 2
@@ -41,7 +43,7 @@ export class DragTool extends Tool {
 		)
 
 		const newPosition = this.initialPosition.clone().add(worldMovement)
-		widget.position.copy(newPosition)
+		widgetGroup.position.copy(newPosition)
 	}
 
 	onPointerUp(_event: NormalizedPointerEvent): void {

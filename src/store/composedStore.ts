@@ -51,6 +51,56 @@ export interface EditorState {
 	getState: () => EditorState
 }
 
+/**
+ * Builds an EditorState object from individual store states.
+ * This helper function eliminates duplication across multiple getState implementations.
+ */
+function buildEditorState(): EditorState {
+	const sceneState = useSceneStore.getState()
+	const widgetState = useWidgetStore.getState()
+	const stampState = useStampStore.getState()
+	const textureState = useTextureStore.getState()
+
+	return {
+		camera: sceneState.camera,
+		setCamera: sceneState.setCamera,
+		selectedObject: sceneState.selectedObject,
+		setSelectedObject: sceneState.setSelectedObject,
+		tube: sceneState.tube,
+		setTube: sceneState.setTube,
+		scene: sceneState.scene,
+		setScene: sceneState.setScene,
+		renderer: sceneState.renderer,
+		setRenderer: sceneState.setRenderer,
+		widget: widgetState.widget,
+		setWidget: widgetState.setWidget,
+		createWidget: widgetState.createWidget,
+		createRotateWidget: widgetState.createRotateWidget,
+		createMoveWidget: widgetState.createMoveWidget,
+		stampInfo: stampState.stampInfo,
+		setStampInfo: stampState.setStampInfo,
+		selectedStampId: stampState.selectedStampId,
+		setSelectedStampId: stampState.setSelectedStampId,
+		imageHandle: stampState.imageHandle,
+		setImageHandle: stampState.setImageHandle,
+		redrawStamp: () => {
+			const currentTextureState = useTextureStore.getState()
+			stampState.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
+		},
+		isMoveMode: stampState.isMoveMode,
+		setIsMoveMode: stampState.setIsMoveMode,
+		canvas: textureState.canvas,
+		setCanvas: textureState.setCanvas,
+		texture: textureState.texture,
+		setTexture: textureState.setTexture,
+		sourceImage: textureState.sourceImage,
+		setSourceImage: textureState.setSourceImage,
+		isImageReady: textureState.isImageReady,
+		setIsImageReady: textureState.setIsImageReady,
+		getState: () => buildEditorState(),
+	}
+}
+
 // Create a proxy store that delegates to individual stores
 export const useEditorStore = (): EditorState => {
 	const sceneStore = useSceneStore()
@@ -103,96 +153,9 @@ export const useEditorStore = (): EditorState => {
 		setIsImageReady: textureStore.setIsImageReady,
 
 		// Zustand store methods
-		getState: () => {
-			const sceneState = useSceneStore.getState()
-			const widgetState = useWidgetStore.getState()
-			const stampState = useStampStore.getState()
-			const textureState = useTextureStore.getState()
-
-			return {
-				camera: sceneState.camera,
-				setCamera: sceneState.setCamera,
-				selectedObject: sceneState.selectedObject,
-				setSelectedObject: sceneState.setSelectedObject,
-				tube: sceneState.tube,
-				setTube: sceneState.setTube,
-				scene: sceneState.scene,
-				setScene: sceneState.setScene,
-				renderer: sceneState.renderer,
-				setRenderer: sceneState.setRenderer,
-				widget: widgetState.widget,
-				setWidget: widgetState.setWidget,
-				createWidget: widgetState.createWidget,
-				createRotateWidget: widgetState.createRotateWidget,
-				createMoveWidget: widgetState.createMoveWidget,
-				stampInfo: stampState.stampInfo,
-				setStampInfo: stampState.setStampInfo,
-				selectedStampId: stampState.selectedStampId,
-				setSelectedStampId: stampState.setSelectedStampId,
-				imageHandle: stampState.imageHandle,
-				setImageHandle: stampState.setImageHandle,
-				redrawStamp: () => {
-					const currentTextureState = useTextureStore.getState()
-					stampState.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
-				},
-				isMoveMode: stampState.isMoveMode,
-				setIsMoveMode: stampState.setIsMoveMode,
-				canvas: textureState.canvas,
-				setCanvas: textureState.setCanvas,
-				texture: textureState.texture,
-				setTexture: textureState.setTexture,
-				sourceImage: textureState.sourceImage,
-				setSourceImage: textureState.setSourceImage,
-				isImageReady: textureState.isImageReady,
-				setIsImageReady: textureState.setIsImageReady,
-				getState: () => useEditorStore.getState(),
-			}
-		},
+		getState: () => buildEditorState(),
 	}
 }
 
 // Add getState method to the hook for direct access
-useEditorStore.getState = (): EditorState => {
-	const sceneState = useSceneStore.getState()
-	const widgetState = useWidgetStore.getState()
-	const stampState = useStampStore.getState()
-	const textureState = useTextureStore.getState()
-
-	return {
-		camera: sceneState.camera,
-		setCamera: sceneState.setCamera,
-		selectedObject: sceneState.selectedObject,
-		setSelectedObject: sceneState.setSelectedObject,
-		tube: sceneState.tube,
-		setTube: sceneState.setTube,
-		scene: sceneState.scene,
-		setScene: sceneState.setScene,
-		renderer: sceneState.renderer,
-		setRenderer: sceneState.setRenderer,
-		widget: widgetState.widget,
-		setWidget: widgetState.setWidget,
-		createWidget: widgetState.createWidget,
-		createRotateWidget: widgetState.createRotateWidget,
-		stampInfo: stampState.stampInfo,
-		setStampInfo: stampState.setStampInfo,
-		selectedStampId: stampState.selectedStampId,
-		setSelectedStampId: stampState.setSelectedStampId,
-		imageHandle: stampState.imageHandle,
-		setImageHandle: stampState.setImageHandle,
-		redrawStamp: () => {
-			const currentTextureState = useTextureStore.getState()
-			stampState.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
-		},
-		isMoveMode: stampState.isMoveMode,
-		setIsMoveMode: stampState.setIsMoveMode,
-		canvas: textureState.canvas,
-		setCanvas: textureState.setCanvas,
-		texture: textureState.texture,
-		setTexture: textureState.setTexture,
-		sourceImage: textureState.sourceImage,
-		setSourceImage: textureState.setSourceImage,
-		isImageReady: textureState.isImageReady,
-		setIsImageReady: textureState.setIsImageReady,
-		getState: () => useEditorStore.getState(),
-	}
-}
+useEditorStore.getState = (): EditorState => buildEditorState()

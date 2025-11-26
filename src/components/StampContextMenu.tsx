@@ -4,6 +4,7 @@ import { Maximize2, Trash2, X, Move, RotateCw, Check } from 'lucide-react'
 import { useEditorStore } from '@/store/editorStore'
 import { worldToScreen } from '@/lib/utils'
 import { CanvasRenderer } from '@/services/CanvasRenderer'
+import { disposeObject3D } from '@/lib/utils/resourceDisposal'
 import {
 	Tooltip,
 	TooltipContent,
@@ -36,7 +37,7 @@ export function StampContextMenu() {
 		}
 
 		// Use widget position if widget is active, otherwise use image handle
-		const targetObject = widget || imageHandle
+		const targetObject = widget ? widget.getGroup() : imageHandle
 		if (!targetObject) {
 			setPosition(null)
 			return
@@ -82,7 +83,7 @@ export function StampContextMenu() {
 		imageHandle.getWorldPosition(worldPosition)
 		const stampInfo = store.stampInfo
 
-		store.createWidget(worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene, stampInfo.rotation || 0)
+		store.createWidget('scaling', worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene, stampInfo.rotation || 0)
 	}
 
 	const handleRotate = () => {
@@ -92,7 +93,7 @@ export function StampContextMenu() {
 		imageHandle.getWorldPosition(worldPosition)
 		const stampInfo = store.stampInfo
 
-		store.createRotateWidget(worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene)
+		store.createWidget('rotate', worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene)
 	}
 
 	const handleDelete = () => {
@@ -107,34 +108,14 @@ export function StampContextMenu() {
 		// Remove widget
 		const currentWidget = widget
 		if (currentWidget) {
-			scene.remove(currentWidget)
-			currentWidget.traverse((child: THREE.Object3D) => {
-				if (child instanceof THREE.Mesh) {
-					child.geometry.dispose()
-					if (Array.isArray(child.material)) {
-						child.material.forEach((mat) => mat.dispose())
-					} else {
-						child.material.dispose()
-					}
-				}
-			})
+			disposeObject3D(currentWidget.getGroup(), scene)
 			setWidget(null)
 		}
 
 		// Remove handle
 		const currentHandle = imageHandle
 		if (currentHandle) {
-			scene.remove(currentHandle)
-			currentHandle.traverse((child: THREE.Object3D) => {
-				if (child instanceof THREE.Mesh) {
-					child.geometry.dispose()
-					if (Array.isArray(child.material)) {
-						child.material.forEach((mat) => mat.dispose())
-					} else {
-						child.material.dispose()
-					}
-				}
-			})
+			disposeObject3D(currentHandle, scene)
 			setImageHandle(null)
 		}
 
@@ -148,17 +129,7 @@ export function StampContextMenu() {
 
 		const currentWidget = widget
 		if (currentWidget) {
-			scene.remove(currentWidget)
-			currentWidget.traverse((child: THREE.Object3D) => {
-				if (child instanceof THREE.Mesh) {
-					child.geometry.dispose()
-					if (Array.isArray(child.material)) {
-						child.material.forEach((mat) => mat.dispose())
-					} else {
-						child.material.dispose()
-					}
-				}
-			})
+			disposeObject3D(currentWidget.getGroup(), scene)
 			setWidget(null)
 		}
 	}
@@ -170,7 +141,7 @@ export function StampContextMenu() {
 		imageHandle.getWorldPosition(worldPosition)
 		const stampInfo = store.stampInfo
 
-		store.createMoveWidget(worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene, stampInfo.rotation || 0)
+		store.createWidget('move', worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene, stampInfo.rotation || 0)
 	}
 
 	if (!selectedStampId || !position) {

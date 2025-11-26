@@ -1,7 +1,5 @@
 import * as THREE from 'three'
 import { Tool, NormalizedPointerEvent } from '../Tool'
-import { normalizeMousePosition } from '../utils/mousePosition'
-import { updateCameraMatrix } from '../utils/cameraUpdates'
 import { RESIZE_CONSTANTS } from './constants'
 
 export class ResizeTool extends Tool {
@@ -16,12 +14,7 @@ export class ResizeTool extends Tool {
 	}
 
 	onPointerDown(event: NormalizedPointerEvent): void {
-		const storeState = this.context.store.getState()
-		const camera = storeState.camera || this.context.camera
-		updateCameraMatrix(camera)
-
-		// Update mouse position with current camera
-		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
+		const { storeState, camera } = this.prepareTool(event)
 
 		this.initialMousePos.copy(this.context.mouse)
 
@@ -49,12 +42,7 @@ export class ResizeTool extends Tool {
 			return
 		}
 
-		const storeState = this.context.store.getState()
-		const camera = storeState.camera || this.context.camera
-		updateCameraMatrix(camera)
-
-		// Update mouse position with current camera
-		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
+		const { storeState, camera } = this.prepareTool(event)
 		const deltaMouse = new THREE.Vector2(
 			this.context.mouse.x - this.initialMousePos.x,
 			this.context.mouse.y - this.initialMousePos.y
@@ -66,13 +54,14 @@ export class ResizeTool extends Tool {
 
 		if (!widget || !stampInfo || !canvas) return
 
+		const widgetGroup = widget.getGroup()
 		// Get widget's world position and axes
-		widget.updateMatrixWorld(true)
+		widgetGroup.updateMatrixWorld(true)
 		const widgetPosition = new THREE.Vector3()
-		widget.getWorldPosition(widgetPosition)
+		widgetGroup.getWorldPosition(widgetPosition)
 
-		const worldU = new THREE.Vector3(1, 0, 0).transformDirection(widget.matrixWorld)
-		const worldV = new THREE.Vector3(0, 1, 0).transformDirection(widget.matrixWorld)
+		const worldU = new THREE.Vector3(1, 0, 0).transformDirection(widgetGroup.matrixWorld)
+		const worldV = new THREE.Vector3(0, 1, 0).transformDirection(widgetGroup.matrixWorld)
 
 		// Project widget axes to screen space
 		const uScreen = new THREE.Vector3()

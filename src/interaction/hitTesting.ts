@@ -1,15 +1,10 @@
 import * as THREE from 'three'
-
-export interface HitResult {
-	type: 'resize-handle' | 'rotate-handle' | 'move-handle' | 'widget-body' | 'image-handle' | 'selectable-object' | 'empty'
-	object?: THREE.Object3D
-	intersection?: THREE.Intersection
-	handleType?: 'x' | 'y' | 'center'
-}
+import type { IWidget } from '@/lib/widget/IWidget'
+import type { HitResult } from '@/types/hitResult'
 
 export function performHitTest(
 	raycaster: THREE.Raycaster,
-	widget: THREE.Group | null,
+	widget: IWidget | null,
 	tube: THREE.Mesh | null,
 	imageHandle: THREE.Group | null = null
 ): HitResult {
@@ -19,101 +14,26 @@ export function performHitTest(
 
 	// Priority 1: Widget handles (resize or rotate)
 	if (widget) {
-		widget.updateMatrixWorld(true)
+		const widgetGroup = widget.getGroup()
+		widgetGroup.updateMatrixWorld(true)
 		
-		// First check only colliders (hit test objects)
-		const colliders: THREE.Object3D[] = []
-		widget.traverse((child) => {
-			if (child.userData.isHitTest && child instanceof THREE.Mesh) {
-				colliders.push(child)
-			}
-		})
-
+		// Get colliders from widget interface
+		const colliders = widget.getColliders()
 		const colliderIntersects = raycaster.intersectObjects(colliders, false)
 
 		if (colliderIntersects.length > 0) {
 			const intersected = colliderIntersects[0].object
-
-			// Check if this is a move widget
-			let isMoveWidget = false
-			widget.traverse((child) => {
-				if (child.userData.isMoveWidget) {
-					isMoveWidget = true
-				}
-			})
-
-			// Traverse up to find handle identification
-			let currentObject: THREE.Object3D | null = intersected
-			while (currentObject && currentObject !== widget) {
-				// Check colliders (isHitTest)
-				if (currentObject.userData.isHitTest) {
-					// Check for rotate handle first
-					if (currentObject.userData.isRotateHandle) {
-						return {
-							type: 'rotate-handle',
-							object: intersected,
-							intersection: colliderIntersects[0],
-						}
-					}
-					// Check for move handles if it's a move widget
-					if (isMoveWidget) {
-						if (currentObject.userData.isXAxis || currentObject.userData.isXHandle) {
-							return {
-								type: 'move-handle',
-								object: intersected,
-								intersection: colliderIntersects[0],
-								handleType: 'x',
-							}
-						}
-						if (currentObject.userData.isYAxis || currentObject.userData.isYHandle) {
-							return {
-								type: 'move-handle',
-								object: intersected,
-								intersection: colliderIntersects[0],
-								handleType: 'y',
-							}
-						}
-						if (currentObject.userData.isCenterHandle) {
-							return {
-								type: 'move-handle',
-								object: intersected,
-								intersection: colliderIntersects[0],
-								handleType: 'center',
-							}
-						}
-					}
-					// Then check for resize handles (if not move widget)
-					if (currentObject.userData.isXAxis || currentObject.userData.isXHandle) {
-						return {
-							type: 'resize-handle',
-							object: intersected,
-							intersection: colliderIntersects[0],
-							handleType: 'x',
-						}
-					}
-					if (currentObject.userData.isYAxis || currentObject.userData.isYHandle) {
-						return {
-							type: 'resize-handle',
-							object: intersected,
-							intersection: colliderIntersects[0],
-							handleType: 'y',
-						}
-					}
-					if (currentObject.userData.isCenterHandle) {
-						return {
-							type: 'resize-handle',
-							object: intersected,
-							intersection: colliderIntersects[0],
-							handleType: 'center',
-						}
-					}
-				}
-				currentObject = currentObject.parent
+			const intersection = colliderIntersects[0]
+			
+			// Delegate to widget to determine hit result
+			const handleHitResult = widget.getHandleHitResult(intersected, intersection)
+			if (handleHitResult) {
+				return handleHitResult
 			}
 		}
 
 		// Priority 2: Widget body (any other part of widget that's not a collider)
-		const widgetIntersects = raycaster.intersectObject(widget, true)
+		const widgetIntersects = raycaster.intersectObject(widgetGroup, true)
 		if (widgetIntersects.length > 0) {
 			return {
 				type: 'widget-body',

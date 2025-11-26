@@ -3,6 +3,7 @@ import { calculateTangentVectors } from './utils'
 import { CanvasRenderer } from '@/services/CanvasRenderer'
 import { createImageHandle } from './handle'
 import type { EditorState } from '@/store/composedStore'
+import { disposeObject3D } from './utils/resourceDisposal'
 
 export function placeStampAtIntersection(
 	intersection: THREE.Intersection,
@@ -69,17 +70,7 @@ export function placeStampAtIntersection(
 	// Create image handle at intersection point
 	const existingHandle = storeState.imageHandle
 	if (existingHandle && storeState.scene) {
-		storeState.scene.remove(existingHandle)
-		existingHandle.traverse((child: THREE.Object3D) => {
-			if (child instanceof THREE.Mesh) {
-				child.geometry.dispose()
-				if (Array.isArray(child.material)) {
-					child.material.forEach((mat) => mat.dispose())
-				} else {
-					child.material.dispose()
-				}
-			}
-		})
+		disposeObject3D(existingHandle, storeState.scene)
 	}
 	const handle = createImageHandle(point, storeState.scene!)
 	storeState.setImageHandle(handle)

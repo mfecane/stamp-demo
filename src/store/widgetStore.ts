@@ -1,11 +1,22 @@
 import { create } from 'zustand'
 import * as THREE from 'three'
-import { createScalingWidget, createRotateWidget, createMoveWidget } from '@/lib/widget'
+import type { IWidget } from '@/lib/widget/IWidget'
+import { disposeObject3D } from '@/lib/utils/resourceDisposal'
+import { WidgetFactory } from '@/services/WidgetFactory'
 
 export interface WidgetState {
-	widget: THREE.Group | null
-	setWidget: (widget: THREE.Group | null) => void
-	createWidget: (position: THREE.Vector3, normal: THREE.Vector3, uAxis: THREE.Vector3, vAxis: THREE.Vector3, scene: THREE.Scene, rotation?: number) => void
+	widget: IWidget | null
+	setWidget: (widget: IWidget | null) => void
+	createWidget: (
+		type: 'scaling' | 'rotate' | 'move',
+		position: THREE.Vector3,
+		normal: THREE.Vector3,
+		uAxis: THREE.Vector3,
+		vAxis: THREE.Vector3,
+		scene: THREE.Scene,
+		rotation?: number
+	) => void
+	// Legacy methods for backward compatibility
 	createRotateWidget: (position: THREE.Vector3, normal: THREE.Vector3, uAxis: THREE.Vector3, vAxis: THREE.Vector3, scene: THREE.Scene, rotation?: number) => void
 	createMoveWidget: (position: THREE.Vector3, normal: THREE.Vector3, uAxis: THREE.Vector3, vAxis: THREE.Vector3, scene: THREE.Scene, rotation?: number) => void
 }
@@ -13,59 +24,21 @@ export interface WidgetState {
 export const useWidgetStore = create<WidgetState>((set, get) => ({
 	widget: null,
 	setWidget: (widget) => set({ widget }),
-	createWidget: (position, normal, uAxis, vAxis, scene, rotation = 0) => {
+	createWidget: (type, position, normal, uAxis, vAxis, scene, rotation = 0) => {
 		const currentWidget = get().widget
 		if (currentWidget) {
-			scene.remove(currentWidget)
-			currentWidget.traverse((child) => {
-				if (child instanceof THREE.Mesh) {
-					child.geometry.dispose()
-					if (Array.isArray(child.material)) {
-						child.material.forEach((mat) => mat.dispose())
-					} else {
-						child.material.dispose()
-					}
-				}
-			})
+			disposeObject3D(currentWidget.getGroup(), scene)
 		}
-		const widget = createScalingWidget(position, normal, uAxis, vAxis, scene, rotation)
+		
+		const widget = WidgetFactory.create(type, position, normal, uAxis, vAxis, scene, rotation)
 		set({ widget })
 	},
+	// Legacy methods for backward compatibility
 	createRotateWidget: (position, normal, uAxis, vAxis, scene) => {
-		const currentWidget = get().widget
-		if (currentWidget) {
-			scene.remove(currentWidget)
-			currentWidget.traverse((child) => {
-				if (child instanceof THREE.Mesh) {
-					child.geometry.dispose()
-					if (Array.isArray(child.material)) {
-						child.material.forEach((mat) => mat.dispose())
-					} else {
-						child.material.dispose()
-					}
-				}
-			})
-		}
-		const widget = createRotateWidget(position, normal, uAxis, vAxis, scene)
-		set({ widget })
+		get().createWidget('rotate', position, normal, uAxis, vAxis, scene)
 	},
 	createMoveWidget: (position, normal, uAxis, vAxis, scene, rotation = 0) => {
-		const currentWidget = get().widget
-		if (currentWidget) {
-			scene.remove(currentWidget)
-			currentWidget.traverse((child) => {
-				if (child instanceof THREE.Mesh) {
-					child.geometry.dispose()
-					if (Array.isArray(child.material)) {
-						child.material.forEach((mat) => mat.dispose())
-					} else {
-						child.material.dispose()
-					}
-				}
-			})
-		}
-		const widget = createMoveWidget(position, normal, uAxis, vAxis, scene, rotation)
-		set({ widget })
+		get().createWidget('move', position, normal, uAxis, vAxis, scene, rotation)
 	},
 }))
 

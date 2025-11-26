@@ -1,181 +1,13 @@
 import * as THREE from 'three'
 import { Tool, NormalizedPointerEvent } from '../Tool'
-import { normalizeMousePosition } from '../utils/mousePosition'
-import { updateCameraMatrix } from '../utils/cameraUpdates'
 import { calculateTangentVectors } from '@/lib/utils'
 import { CanvasRenderer } from '@/services/CanvasRenderer'
 import { MOVE_CONSTANTS } from './constants'
+import { getFaceIndexFromUV, getPositionFromUV } from '@/lib/utils/uvCalculations'
+import { updateWidgetOrientation } from '@/lib/utils/widgetOrientation'
 
-/**
- * Get face index from UV coordinates by finding the closest face
- */
-function getFaceIndexFromUV(
-	geometry: THREE.BufferGeometry,
-	targetUV: THREE.Vector2
-): number | null {
-	const uvs = geometry.attributes.uv
-	const indices = geometry.index
-
-	if (!indices || !uvs) {
-		return null
-	}
-
-	let closestFace = -1
-	let minDistance = Infinity
-	const targetU = targetUV.x
-	const targetV = targetUV.y
-
-	// Find the face with UV coordinates closest to target
-	for (let i = 0; i < indices.count / 3; i++) {
-		const i0 = indices.getX(i * 3)
-		const i1 = indices.getX(i * 3 + 1)
-		const i2 = indices.getX(i * 3 + 2)
-
-		const uv0 = new THREE.Vector2(uvs.getX(i0), uvs.getY(i0))
-		const uv1 = new THREE.Vector2(uvs.getX(i1), uvs.getY(i1))
-		const uv2 = new THREE.Vector2(uvs.getX(i2), uvs.getY(i2))
-
-		// Calculate barycentric coordinates
-		const v0 = uv1.clone().sub(uv0)
-		const v1 = uv2.clone().sub(uv0)
-		const v2 = targetUV.clone().sub(uv0)
-
-		const dot00 = v0.dot(v0)
-		const dot01 = v0.dot(v1)
-		const dot02 = v0.dot(v2)
-		const dot11 = v1.dot(v1)
-		const dot12 = v1.dot(v2)
-
-		const invDenom = 1 / (dot00 * dot11 - dot01 * dot01)
-		const u = (dot11 * dot02 - dot01 * dot12) * invDenom
-		const v = (dot00 * dot12 - dot01 * dot02) * invDenom
-
-		// Check if point is inside triangle (with some tolerance for edge cases)
-		if (u >= -0.1 && v >= -0.1 && u + v <= 1.1) {
-			// Calculate distance from triangle center
-			const centerU = (uv0.x + uv1.x + uv2.x) / 3
-			const centerV = (uv0.y + uv1.y + uv2.y) / 3
-			const dist = Math.sqrt(
-				Math.pow(targetU - centerU, 2) + Math.pow(targetV - centerV, 2)
-			)
-
-			if (dist < minDistance) {
-				minDistance = dist
-				closestFace = i
-			}
-		}
-	}
-
-	return closestFace === -1 ? null : closestFace
-}
-
-/**
- * Get 3D position on mesh from UV coordinates by finding the closest face
- * and interpolating the position
- */
-export function getPositionFromUV(
-	geometry: THREE.BufferGeometry,
-	mesh: THREE.Mesh,
-	targetUV: THREE.Vector2
-): THREE.Vector3 | null {
-	const positions = geometry.attributes.position
-	const uvs = geometry.attributes.uv
-	const indices = geometry.index
-
-	if (!indices || !uvs || !positions) {
-		return null
-	}
-
-	let closestFace = -1
-	let minDistance = Infinity
-	const targetU = targetUV.x
-	const targetV = targetUV.y
-
-	// Find the face with UV coordinates closest to target
-	for (let i = 0; i < indices.count / 3; i++) {
-		const i0 = indices.getX(i * 3)
-		const i1 = indices.getX(i * 3 + 1)
-		const i2 = indices.getX(i * 3 + 2)
-
-		const uv0 = new THREE.Vector2(uvs.getX(i0), uvs.getY(i0))
-		const uv1 = new THREE.Vector2(uvs.getX(i1), uvs.getY(i1))
-		const uv2 = new THREE.Vector2(uvs.getX(i2), uvs.getY(i2))
-
-		// Calculate barycentric coordinates
-		const v0 = uv1.clone().sub(uv0)
-		const v1 = uv2.clone().sub(uv0)
-		const v2 = targetUV.clone().sub(uv0)
-
-		const dot00 = v0.dot(v0)
-		const dot01 = v0.dot(v1)
-		const dot02 = v0.dot(v2)
-		const dot11 = v1.dot(v1)
-		const dot12 = v1.dot(v2)
-
-		const invDenom = 1 / (dot00 * dot11 - dot01 * dot01)
-		const u = (dot11 * dot02 - dot01 * dot12) * invDenom
-		const v = (dot00 * dot12 - dot01 * dot02) * invDenom
-
-		// Check if point is inside triangle (with some tolerance for edge cases)
-		if (u >= -0.1 && v >= -0.1 && u + v <= 1.1) {
-			// Calculate distance from triangle center
-			const centerU = (uv0.x + uv1.x + uv2.x) / 3
-			const centerV = (uv0.y + uv1.y + uv2.y) / 3
-			const dist = Math.sqrt(
-				Math.pow(targetU - centerU, 2) + Math.pow(targetV - centerV, 2)
-			)
-
-			if (dist < minDistance) {
-				minDistance = dist
-				closestFace = i
-			}
-		}
-	}
-
-	if (closestFace === -1) {
-		return null
-	}
-
-	// Interpolate position using barycentric coordinates
-	const i0 = indices.getX(closestFace * 3)
-	const i1 = indices.getX(closestFace * 3 + 1)
-	const i2 = indices.getX(closestFace * 3 + 2)
-
-	const v0 = new THREE.Vector3(positions.getX(i0), positions.getY(i0), positions.getZ(i0))
-	const v1 = new THREE.Vector3(positions.getX(i1), positions.getY(i1), positions.getZ(i1))
-	const v2 = new THREE.Vector3(positions.getX(i2), positions.getY(i2), positions.getZ(i2))
-
-	const uv0 = new THREE.Vector2(uvs.getX(i0), uvs.getY(i0))
-	const uv1 = new THREE.Vector2(uvs.getX(i1), uvs.getY(i1))
-	const uv2 = new THREE.Vector2(uvs.getX(i2), uvs.getY(i2))
-
-	// Calculate barycentric coordinates
-	const v0_uv = uv1.clone().sub(uv0)
-	const v1_uv = uv2.clone().sub(uv0)
-	const v2_uv = targetUV.clone().sub(uv0)
-
-	const dot00 = v0_uv.dot(v0_uv)
-	const dot01 = v0_uv.dot(v1_uv)
-	const dot02 = v0_uv.dot(v2_uv)
-	const dot11 = v1_uv.dot(v1_uv)
-	const dot12 = v1_uv.dot(v2_uv)
-
-	const invDenom = 1 / (dot00 * dot11 - dot01 * dot01)
-	const u = (dot11 * dot02 - dot01 * dot12) * invDenom
-	const v = (dot00 * dot12 - dot01 * dot02) * invDenom
-	const w = 1 - u - v
-
-	// Interpolate position
-	const position = new THREE.Vector3()
-	position.addScaledVector(v0, w)
-	position.addScaledVector(v1, u)
-	position.addScaledVector(v2, v)
-
-	// Transform to world space
-	position.applyMatrix4(mesh.matrixWorld)
-
-	return position
-}
+// Re-export for backward compatibility
+export { getPositionFromUV }
 
 export class MoveTool extends Tool {
 	private initialMousePos = new THREE.Vector2()
@@ -190,12 +22,7 @@ export class MoveTool extends Tool {
 	}
 
 	onPointerDown(event: NormalizedPointerEvent): void {
-		const storeState = this.context.store.getState()
-		const camera = storeState.camera || this.context.camera
-		updateCameraMatrix(camera)
-
-		// Update mouse position with current camera
-		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
+		const { storeState, camera } = this.prepareTool(event)
 
 		this.initialMousePos.copy(this.context.mouse)
 
@@ -209,9 +36,10 @@ export class MoveTool extends Tool {
 			return
 		}
 
+		const widgetGroup = widget.getGroup()
 		// Store initial widget position
-		widget.updateMatrixWorld(true)
-		widget.getWorldPosition(this.initialWidgetPosition)
+		widgetGroup.updateMatrixWorld(true)
+		widgetGroup.getWorldPosition(this.initialWidgetPosition)
 
 		this.initialUV = stampInfo.uv.clone()
 		this.isActive = true
@@ -223,12 +51,7 @@ export class MoveTool extends Tool {
 			return
 		}
 
-		const storeState = this.context.store.getState()
-		const camera = storeState.camera || this.context.camera
-		updateCameraMatrix(camera)
-
-		// Update mouse position with current camera
-		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
+		const { storeState, camera } = this.prepareTool(event)
 		const deltaMouse = new THREE.Vector2(
 			this.context.mouse.x - this.initialMousePos.x,
 			this.context.mouse.y - this.initialMousePos.y
@@ -244,13 +67,14 @@ export class MoveTool extends Tool {
 
 		if (!widget || !stampInfo || !tube || !canvas || !sourceImage || !texture || !scene) return
 
+		const widgetGroup = widget.getGroup()
 		// Get widget's world position and axes
-		widget.updateMatrixWorld(true)
+		widgetGroup.updateMatrixWorld(true)
 		const widgetPosition = new THREE.Vector3()
-		widget.getWorldPosition(widgetPosition)
+		widgetGroup.getWorldPosition(widgetPosition)
 
-		const worldU = new THREE.Vector3(1, 0, 0).transformDirection(widget.matrixWorld)
-		const worldV = new THREE.Vector3(0, 1, 0).transformDirection(widget.matrixWorld)
+		const worldU = new THREE.Vector3(1, 0, 0).transformDirection(widgetGroup.matrixWorld)
+		const worldV = new THREE.Vector3(0, 1, 0).transformDirection(widgetGroup.matrixWorld)
 
 		// Project widget axes to screen space
 		const uScreen = new THREE.Vector3()
@@ -317,33 +141,11 @@ export class MoveTool extends Tool {
 
 			// Update widget position to intersection point
 			const point = intersection.point
-			widget.position.copy(point)
-			widget.updateMatrixWorld(true)
+			widgetGroup.position.copy(point)
+			widgetGroup.updateMatrixWorld(true)
 
 			// Update widget orientation based on new normal and axes, applying rotation
-			// Negate rotation to match canvas 2D rotation direction (canvas positive = counter-clockwise)
-			const normalizedN = normal.clone().normalize()
-			const rotation = stampInfo.rotation || 0
-			const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(normalizedN, -rotation)
-			
-			const rotatedU = uAxis.clone().applyQuaternion(rotationQuaternion)
-			const rotatedV = vAxis.clone().applyQuaternion(rotationQuaternion)
-
-			const normalizedU = rotatedU.clone().normalize()
-			const normalizedV = rotatedV.clone().normalize()
-
-			const correctedV = normalizedV.clone().sub(normalizedU.clone().multiplyScalar(normalizedU.dot(normalizedV)))
-			correctedV.normalize()
-			const correctedN = new THREE.Vector3().crossVectors(normalizedU, correctedV).normalize()
-			if (correctedN.dot(normalizedN) < 0) {
-				correctedN.negate()
-			}
-
-			const quaternion = new THREE.Quaternion()
-			const matrix = new THREE.Matrix4()
-			matrix.makeBasis(normalizedU, correctedV, correctedN)
-			quaternion.setFromRotationMatrix(matrix)
-			widget.quaternion.copy(quaternion)
+			updateWidgetOrientation(widgetGroup, normal, uAxis, vAxis, stampInfo.rotation || 0)
 
 			return
 		}
@@ -386,7 +188,7 @@ export class MoveTool extends Tool {
 		// Update widget position based on actual 3D position from new UV coordinates
 		const newPosition = getPositionFromUV(tube.geometry, tube, newUV)
 		if (newPosition) {
-			widget.position.copy(newPosition)
+			widgetGroup.position.copy(newPosition)
 			
 			// Recalculate axes at the new position
 			const faceIndex = getFaceIndexFromUV(tube.geometry, newUV)
@@ -431,30 +233,7 @@ export class MoveTool extends Tool {
 					}
 
 					// Update widget orientation based on new normal and axes, applying rotation
-					// Negate rotation to match canvas 2D rotation direction (canvas positive = counter-clockwise)
-					const normalizedN = normal.clone().normalize()
-					const rotation = stampInfo.rotation || 0
-					const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(normalizedN, -rotation)
-					
-					const rotatedU = uAxis.clone().applyQuaternion(rotationQuaternion)
-					const rotatedV = vAxis.clone().applyQuaternion(rotationQuaternion)
-
-					const normalizedU = rotatedU.clone().normalize()
-					const normalizedV = rotatedV.clone().normalize()
-
-					const correctedV = normalizedV.clone().sub(normalizedU.clone().multiplyScalar(normalizedU.dot(normalizedV)))
-					correctedV.normalize()
-					const correctedN = new THREE.Vector3().crossVectors(normalizedU, correctedV).normalize()
-					if (correctedN.dot(normalizedN) < 0) {
-						correctedN.negate()
-					}
-
-					const quaternion = new THREE.Quaternion()
-					const matrix = new THREE.Matrix4()
-					matrix.makeBasis(normalizedU, correctedV, correctedN)
-					quaternion.setFromRotationMatrix(matrix)
-					widget.quaternion.copy(quaternion)
-					widget.updateMatrixWorld(true)
+					updateWidgetOrientation(widgetGroup, normal, uAxis, vAxis, stampInfo.rotation || 0)
 				}
 			} else {
 				// Fallback: use existing axes if face index not found
@@ -475,30 +254,7 @@ export class MoveTool extends Tool {
 				}
 
 				// Update widget orientation based on current normal and axes, applying rotation
-				// Negate rotation to match canvas 2D rotation direction (canvas positive = counter-clockwise)
-				const normalizedN = stampInfo.normal.clone().normalize()
-				const rotation = stampInfo.rotation || 0
-				const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(normalizedN, -rotation)
-				
-				const rotatedU = stampInfo.uAxis.clone().applyQuaternion(rotationQuaternion)
-				const rotatedV = stampInfo.vAxis.clone().applyQuaternion(rotationQuaternion)
-
-				const normalizedU = rotatedU.clone().normalize()
-				const normalizedV = rotatedV.clone().normalize()
-
-				const correctedV = normalizedV.clone().sub(normalizedU.clone().multiplyScalar(normalizedU.dot(normalizedV)))
-				correctedV.normalize()
-				const correctedN = new THREE.Vector3().crossVectors(normalizedU, correctedV).normalize()
-				if (correctedN.dot(normalizedN) < 0) {
-					correctedN.negate()
-				}
-
-				const quaternion = new THREE.Quaternion()
-				const matrix = new THREE.Matrix4()
-				matrix.makeBasis(normalizedU, correctedV, correctedN)
-				quaternion.setFromRotationMatrix(matrix)
-				widget.quaternion.copy(quaternion)
-				widget.updateMatrixWorld(true)
+				updateWidgetOrientation(widgetGroup, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, stampInfo.rotation || 0)
 			}
 		}
 

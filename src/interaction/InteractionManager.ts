@@ -1,5 +1,6 @@
 import { Tool, NormalizedPointerEvent, ToolContext } from './Tool'
-import { performHitTest, HitResult } from './hitTesting'
+import { performHitTest } from './hitTesting'
+import type { HitResult } from '@/types/hitResult'
 import { HoverStateManager } from './HoverStateManager'
 import { ToolFactory, IToolFactory } from './ToolFactory'
 import { normalizeMousePosition } from './utils/mousePosition'

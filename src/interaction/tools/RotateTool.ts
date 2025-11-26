@@ -1,7 +1,5 @@
 import * as THREE from 'three'
 import { Tool, NormalizedPointerEvent } from '../Tool'
-import { normalizeMousePosition } from '../utils/mousePosition'
-import { updateCameraMatrix } from '../utils/cameraUpdates'
 
 export class RotateTool extends Tool {
 	private initialMousePos = new THREE.Vector2()
@@ -9,12 +7,7 @@ export class RotateTool extends Tool {
 	private isActive = false
 
 	onPointerDown(event: NormalizedPointerEvent): void {
-		const storeState = this.context.store.getState()
-		const camera = storeState.camera || this.context.camera
-		updateCameraMatrix(camera)
-
-		// Update mouse position with current camera
-		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
+		const { storeState, camera } = this.prepareTool(event)
 
 		this.initialMousePos.copy(this.context.mouse)
 
@@ -38,22 +31,18 @@ export class RotateTool extends Tool {
 			return
 		}
 
-		const storeState = this.context.store.getState()
-		const camera = storeState.camera || this.context.camera
-		updateCameraMatrix(camera)
-
-		// Update mouse position with current camera
-		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
+		const { storeState, camera } = this.prepareTool(event)
 
 		const widget = storeState.widget
 		const stampInfo = storeState.stampInfo
 
 		if (!widget || !stampInfo) return
 
+		const widgetGroup = widget.getGroup()
 		// Get widget's world position
-		widget.updateMatrixWorld(true)
+		widgetGroup.updateMatrixWorld(true)
 		const widgetPosition = new THREE.Vector3()
-		widget.getWorldPosition(widgetPosition)
+		widgetGroup.getWorldPosition(widgetPosition)
 
 		// Project widget center to screen space
 		const widgetScreen = new THREE.Vector3()

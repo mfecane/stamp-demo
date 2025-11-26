@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import { updateWidgetHoverState, updateRotateWidgetHoverState } from '@/lib/widget'
+import type { IWidget } from '@/lib/widget/IWidget'
+import { updateWidgetHoverState, updateRotateWidgetHoverState } from '@/lib/widget/utils/hoverState'
 import { updateHandleHoverState } from '@/lib/handle'
 
 export class HoverStateManager {
@@ -9,93 +10,53 @@ export class HoverStateManager {
 
 	updateHoverState(
 		raycaster: THREE.Raycaster,
-		widget: THREE.Group | null,
+		widget: IWidget | null,
 		imageHandle: THREE.Group | null = null
 	): void {
 		// Check widget hover state
 		let newHoveredAxis: 'x' | 'y' | 'center' | null = null
-		let isRotateWidget = false
 		let isRotateHandleHovered = false
-		let isMoveWidget = false
 		
 		if (widget) {
-			widget.updateMatrixWorld(true)
+			const widgetGroup = widget.getGroup()
+			widgetGroup.updateMatrixWorld(true)
+			const widgetType = widget.getType()
 			
-			// Check widget type
-			widget.traverse((child) => {
-				if (child.userData.isRotateWidget || child.userData.isRotateHandle) {
-					isRotateWidget = true
-				}
-				if (child.userData.isMoveWidget) {
-					isMoveWidget = true
-				}
-			})
-			
-			// Only intersect with colliders (hit test objects)
-			const colliders: THREE.Object3D[] = []
-			widget.traverse((child) => {
-				if (child.userData.isHitTest && child instanceof THREE.Mesh) {
-					colliders.push(child)
-				}
-			})
-
+			// Get colliders from widget interface
+			const colliders = widget.getColliders()
 			const widgetIntersects = raycaster.intersectObjects(colliders, false)
 
 			if (widgetIntersects.length > 0) {
 				const intersected = widgetIntersects[0].object
 
-				// Traverse up to find axis identification
-				let currentObject: THREE.Object3D | null = intersected
-				while (currentObject && currentObject !== widget) {
-					// Only check colliders (isHitTest)
-					if (currentObject.userData.isHitTest) {
-						if (currentObject.userData.isRotateHandle) {
+				if (widgetType === 'rotate') {
+					// Check if intersected is a rotate handle
+					let currentObject: THREE.Object3D | null = intersected
+					while (currentObject && currentObject !== widgetGroup) {
+						if (currentObject.userData.isHitTest && currentObject.userData.isRotateHandle) {
 							isRotateHandleHovered = true
 							break
 						}
-						if (currentObject.userData.isXAxis || currentObject.userData.isXHandle) {
-							newHoveredAxis = 'x'
-							break
-						}
-						if (currentObject.userData.isYAxis || currentObject.userData.isYHandle) {
-							newHoveredAxis = 'y'
-							break
-						}
-						if (currentObject.userData.isCenterHandle) {
-							newHoveredAxis = 'center'
-							break
-						}
+						currentObject = currentObject.parent
 					}
+				} else {
+					// For scaling and move widgets, get handle type from widget interface
+					newHoveredAxis = widget.getHandleType(intersected)
+				}
+			}
 
-					currentObject = currentObject.parent
+			// Update widget hover state if it changed
+			if (widgetType === 'rotate') {
+				// For rotate widgets, use rotate hover state
+				if (isRotateHandleHovered !== this.hoveredRotateHandle) {
+					this.hoveredRotateHandle = isRotateHandleHovered
+					updateRotateWidgetHoverState(widgetGroup, isRotateHandleHovered)
 				}
-			}
-		}
-
-		// Update widget hover state if it changed
-		if (isRotateWidget) {
-			// For rotate widgets, use rotate hover state
-			if (isRotateHandleHovered !== this.hoveredRotateHandle) {
-				this.hoveredRotateHandle = isRotateHandleHovered
-				if (widget) {
-					updateRotateWidgetHoverState(widget, isRotateHandleHovered)
-				}
-			}
-		} else if (isMoveWidget) {
-			// For move widgets, use resize hover state (same structure)
-			// Always update to ensure colors are set correctly
-			if (newHoveredAxis !== this.hoveredAxis) {
-				this.hoveredAxis = newHoveredAxis
-				if (widget) {
-					updateWidgetHoverState(widget, this.hoveredAxis)
-				}
-			}
-		} else if (newHoveredAxis !== null || this.hoveredAxis !== null) {
-			// For resize widgets, use resize hover state
-			if (newHoveredAxis !== this.hoveredAxis) {
-				this.hoveredAxis = newHoveredAxis
-				if (widget) {
-					updateWidgetHoverState(widget, this.hoveredAxis)
+			} else {
+				// For scaling and move widgets, use resize hover state (same structure)
+				if (newHoveredAxis !== this.hoveredAxis) {
+					this.hoveredAxis = newHoveredAxis
+					updateWidgetHoverState(widgetGroup, this.hoveredAxis)
 				}
 			}
 		}
