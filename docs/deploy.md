@@ -2,6 +2,12 @@
 
 This guide explains how to deploy this application to GitHub Pages using GitHub Actions.
 
+## Live Site
+
+The application is deployed and available at:
+
+**https://mfecane.github.io/stamp-demo/**
+
 ## Prerequisites
 
 - A GitHub repository for this project
@@ -65,6 +71,8 @@ After the first successful deployment, your site will be available at:
 ```
 https://[username].github.io/[repository-name]/
 ```
+
+**Live deployment:** https://mfecane.github.io/stamp-demo/
 
 For example, if your username is `johndoe` and repository is `editor`:
 ```

@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react'
 import * as THREE from 'three'
-import { Maximize2, Trash2, X } from 'lucide-react'
+import { Maximize2, Trash2, X, Move, RotateCw } from 'lucide-react'
 import { useEditorStore } from '@/store/editorStore'
 import { worldToScreen } from '@/lib/utils'
 import { CanvasRenderer } from '@/services/CanvasRenderer'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export function StampContextMenu() {
 	const store = useEditorStore()
@@ -22,32 +28,39 @@ export function StampContextMenu() {
 	const [position, setPosition] = useState<{ x: number; y: number } | null>(null)
 	const renderer = store.renderer
 
-	// Update position based on handle position and camera
+	// Update position based on handle or widget position and camera
 	useEffect(() => {
-		if (!selectedStampId || !imageHandle || !camera) {
+		if (!selectedStampId || !camera) {
+			setPosition(null)
+			return
+		}
+
+		// Use widget position if widget is active, otherwise use image handle
+		const targetObject = widget || imageHandle
+		if (!targetObject) {
 			setPosition(null)
 			return
 		}
 
 		const updatePosition = () => {
-			if (!imageHandle || !camera || !renderer) return
+			if (!targetObject || !camera || !renderer) return
 
-			imageHandle.updateMatrixWorld(true)
+			targetObject.updateMatrixWorld(true)
 			const worldPosition = new THREE.Vector3()
-			imageHandle.getWorldPosition(worldPosition)
+			targetObject.getWorldPosition(worldPosition)
 
 			const screenPos = worldToScreen(worldPosition, camera, renderer)
 			
-			// Position menu below handle (add offset)
+			// Position menu below handle/widget (add offset)
 			setPosition({
 				x: screenPos.x,
-				y: screenPos.y + 30, // Offset below handle
+				y: screenPos.y + 80, // Offset below handle (30px base + 50px additional)
 			})
 		}
 
 		updatePosition()
 
-		// Update on animation frame to track camera rotation
+		// Update on animation frame to track camera rotation and widget movement
 		let animationId: number
 		const animate = () => {
 			updatePosition()
@@ -60,7 +73,7 @@ export function StampContextMenu() {
 				cancelAnimationFrame(animationId)
 			}
 		}
-	}, [selectedStampId, imageHandle, camera, renderer])
+	}, [selectedStampId, imageHandle, widget, camera, renderer])
 
 	const handleResize = () => {
 		if (!imageHandle || !store.stampInfo || !scene) return
@@ -69,7 +82,17 @@ export function StampContextMenu() {
 		imageHandle.getWorldPosition(worldPosition)
 		const stampInfo = store.stampInfo
 
-		store.createWidget(worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene)
+		store.createWidget(worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene, stampInfo.rotation || 0)
+	}
+
+	const handleRotate = () => {
+		if (!imageHandle || !store.stampInfo || !scene) return
+
+		const worldPosition = new THREE.Vector3()
+		imageHandle.getWorldPosition(worldPosition)
+		const stampInfo = store.stampInfo
+
+		store.createRotateWidget(worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene)
 	}
 
 	const handleDelete = () => {
@@ -140,6 +163,16 @@ export function StampContextMenu() {
 		}
 	}
 
+	const handleMove = () => {
+		if (!imageHandle || !store.stampInfo || !scene) return
+
+		const worldPosition = new THREE.Vector3()
+		imageHandle.getWorldPosition(worldPosition)
+		const stampInfo = store.stampInfo
+
+		store.createMoveWidget(worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene, stampInfo.rotation || 0)
+	}
+
 	if (!selectedStampId || !position) {
 		return null
 	}
@@ -147,6 +180,36 @@ export function StampContextMenu() {
 	// Show only exit widget button when widget is visible
 	if (widget) {
 		return (
+			<TooltipProvider>
+				<div
+					className="absolute z-50 bg-card border border-border rounded-md shadow-lg p-1 flex gap-1"
+					style={{
+						left: `${position.x}px`,
+						top: `${position.y}px`,
+						transform: 'translateX(-50%)',
+					}}
+				>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								onClick={handleExitWidget}
+								className="p-2 hover:bg-accent rounded transition-colors"
+							>
+								<X className="w-4 h-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent>
+							<p>Exit widget</p>
+						</TooltipContent>
+					</Tooltip>
+				</div>
+			</TooltipProvider>
+		)
+	}
+
+
+	return (
+		<TooltipProvider>
 			<div
 				className="absolute z-50 bg-card border border-border rounded-md shadow-lg p-1 flex gap-1"
 				style={{
@@ -155,41 +218,60 @@ export function StampContextMenu() {
 					transform: 'translateX(-50%)',
 				}}
 			>
-				<button
-					onClick={handleExitWidget}
-					className="p-2 hover:bg-accent rounded transition-colors"
-					title="Exit widget"
-				>
-					<X className="w-4 h-4" />
-				</button>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							onClick={handleMove}
+							className="p-2 hover:bg-accent rounded transition-colors"
+						>
+							<Move className="w-4 h-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>Move</p>
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							onClick={handleResize}
+							className="p-2 hover:bg-accent rounded transition-colors"
+						>
+							<Maximize2 className="w-4 h-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>Resize</p>
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							onClick={handleRotate}
+							className="p-2 hover:bg-accent rounded transition-colors"
+						>
+							<RotateCw className="w-4 h-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>Rotate</p>
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							onClick={handleDelete}
+							className="p-2 hover:bg-accent rounded transition-colors text-destructive"
+						>
+							<Trash2 className="w-4 h-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>Delete</p>
+					</TooltipContent>
+				</Tooltip>
 			</div>
-		)
-	}
-
-	return (
-		<div
-			className="absolute z-50 bg-card border border-border rounded-md shadow-lg p-1 flex gap-1"
-			style={{
-				left: `${position.x}px`,
-				top: `${position.y}px`,
-				transform: 'translateX(-50%)',
-			}}
-		>
-			<button
-				onClick={handleResize}
-				className="p-2 hover:bg-accent rounded transition-colors"
-				title="Resize"
-			>
-				<Maximize2 className="w-4 h-4" />
-			</button>
-			<button
-				onClick={handleDelete}
-				className="p-2 hover:bg-accent rounded transition-colors text-destructive"
-				title="Delete"
-			>
-				<Trash2 className="w-4 h-4" />
-			</button>
-		</div>
+		</TooltipProvider>
 	)
 }
 

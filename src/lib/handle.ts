@@ -11,7 +11,10 @@ export function createImageHandle(
 	// Visual handle - small sphere
 	const handleSize = 0.02
 	const handleGeometry = new THREE.SphereGeometry(handleSize, 16, 16)
-	const handleMaterial = new THREE.MeshBasicMaterial({ color: 0x4a90e2 })
+	const handleMaterial = new THREE.MeshBasicMaterial({ 
+		color: 0x4a90e2,
+		depthTest: false
+	})
 	const handleMesh = new THREE.Mesh(handleGeometry, handleMaterial)
 	handleMesh.userData.isImageHandle = true
 	handle.add(handleMesh)
@@ -20,13 +23,18 @@ export function createImageHandle(
 	const handleEdges = new THREE.EdgesGeometry(handleGeometry)
 	const handleWireframe = new THREE.LineSegments(
 		handleEdges,
-		new THREE.LineBasicMaterial({ color: 0x4a90e2, opacity: 0.8, transparent: true })
+		new THREE.LineBasicMaterial({ 
+			color: 0x4a90e2, 
+			opacity: 0.8, 
+			transparent: true,
+			depthTest: false
+		})
 	)
 	handleWireframe.userData.isImageHandle = true
 	handle.add(handleWireframe)
 
 	// Invisible collider for hit testing (larger than visual)
-	const hitTestSize = 0.04
+	const hitTestSize = 0.08
 	const hitTestGeometry = new THREE.SphereGeometry(hitTestSize, 16, 16)
 	const hitTestMaterial = new THREE.MeshBasicMaterial({
 		color: 0xffffff,
@@ -54,7 +62,8 @@ export function updateHandleHoverState(handle: THREE.Group | null, isHovered: bo
 	const targetColor = isHovered ? whiteColor : defaultColor
 
 	handle.traverse((child) => {
-		if (child.userData.isImageHandle) {
+		// Only update visual elements, not the collider (which has isHitTest)
+		if (child.userData.isImageHandle && !child.userData.isHitTest) {
 			if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial) {
 				child.material.color.setHex(targetColor)
 			} else if (child instanceof THREE.LineSegments && child.material instanceof THREE.LineBasicMaterial) {

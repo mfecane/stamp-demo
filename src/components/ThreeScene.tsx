@@ -6,6 +6,7 @@ import { InteractionManager } from '@/interaction/InteractionManager'
 import { normalizePointerEvent } from '@/interaction/utils/eventNormalization'
 import { SceneInitializer } from '@/services/SceneInitializer'
 import { StampContextMenu } from './StampContextMenu'
+import { getPositionFromUV } from '@/interaction/tools/MoveTool'
 
 interface ThreeSceneProps {
 	imageUrl: string | null
@@ -24,6 +25,7 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 	const isImageReady = store.isImageReady
 	const setIsImageReady = store.setIsImageReady
 	const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
+	const skyboxRef = useRef<THREE.Mesh | null>(null)
 
 	useEffect(() => {
 		if (!mountRef.current) return
@@ -39,9 +41,10 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 			height,
 		})
 
-		const { scene, camera, renderer, controls, tube, plane, canvas, texture } = sceneObjects
+		const { scene, camera, renderer, controls, tube, canvas, texture, skybox } = sceneObjects
 		rendererRef.current = renderer
 		controlsRef.current = controls
+		skyboxRef.current = skybox
 
 		// Clear any existing stamp and widget state before initializing
 		// Remove widget from scene if it exists
@@ -128,6 +131,12 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 		const animate = () => {
 			animationId = requestAnimationFrame(animate)
 			controls.update()
+			
+			// Rotate skybox to match camera rotation
+			if (skybox) {
+				skybox.quaternion.copy(camera.quaternion)
+			}
+			
 			renderer.render(scene, camera)
 		}
 		animate()
@@ -205,11 +214,14 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 			if (tube.material && !Array.isArray(tube.material)) {
 				tube.material.dispose()
 			}
-			if (plane.geometry) {
-				plane.geometry.dispose()
-			}
-			if (plane.material && !Array.isArray(plane.material)) {
-				plane.material.dispose()
+			if (skybox) {
+				if (skybox.geometry) {
+					skybox.geometry.dispose()
+				}
+				if (skybox.material && !Array.isArray(skybox.material)) {
+					skybox.material.dispose()
+				}
+				scene.remove(skybox)
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -261,6 +273,75 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 			renderer.domElement.style.cursor = 'default'
 		}
 	}, [isImageReady])
+
+	// Hide image handle when widget is active
+	useEffect(() => {
+		const imageHandle = store.imageHandle
+		const widget = store.widget
+		
+		if (imageHandle) {
+			imageHandle.visible = !widget
+		}
+	}, [store.widget, store.imageHandle])
+
+	// Update image handle and widget positions/orientations when stamp UV or rotation changes
+	useEffect(() => {
+		const stampInfo = store.stampInfo
+		const imageHandle = store.imageHandle
+		const widget = store.widget
+		const tube = store.tube
+
+		if (!stampInfo || !tube || !stampInfo.uv) return
+
+		const isMoveWidget = widget?.userData?.isMoveWidget === true
+		
+		// Get 3D position from UV coordinates
+		const newPosition = getPositionFromUV(tube.geometry, tube, stampInfo.uv)
+		if (!newPosition) return
+
+		// Apply rotation to axes around the normal
+		// Negate rotation to match canvas 2D rotation direction (canvas positive = counter-clockwise)
+		const normalizedN = stampInfo.normal.clone().normalize()
+		const rotation = stampInfo.rotation || 0
+		const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(normalizedN, -rotation)
+		
+		const rotatedU = stampInfo.uAxis.clone().applyQuaternion(rotationQuaternion)
+		const rotatedV = stampInfo.vAxis.clone().applyQuaternion(rotationQuaternion)
+
+		const normalizedU = rotatedU.clone().normalize()
+		const normalizedV = rotatedV.clone().normalize()
+
+		const correctedV = normalizedV.clone().sub(normalizedU.clone().multiplyScalar(normalizedU.dot(normalizedV)))
+		correctedV.normalize()
+		const correctedN = new THREE.Vector3().crossVectors(normalizedU, correctedV).normalize()
+		if (correctedN.dot(normalizedN) < 0) {
+			correctedN.negate()
+		}
+
+		const quaternion = new THREE.Quaternion()
+		const matrix = new THREE.Matrix4()
+		matrix.makeBasis(normalizedU, correctedV, correctedN)
+		quaternion.setFromRotationMatrix(matrix)
+
+		// Update image handle position
+		if (imageHandle) {
+			imageHandle.position.copy(newPosition)
+			imageHandle.updateMatrixWorld(true)
+		}
+
+		// Update widget position and orientation
+		if (widget) {
+			// For move widgets, only update orientation (position is handled by MoveTool)
+			// For other widgets, update both position and orientation
+			if (!isMoveWidget) {
+				widget.position.copy(newPosition)
+			}
+			
+			// Always update widget orientation to match rotated axes
+			widget.quaternion.copy(quaternion)
+			widget.updateMatrixWorld(true)
+		}
+	}, [store.stampInfo, store.imageHandle, store.widget, store.tube])
 
 	return (
 		<div ref={mountRef} className="w-full h-full relative" style={{ minWidth: 0, minHeight: 0 }}>

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 
 export interface HitResult {
-	type: 'resize-handle' | 'widget-body' | 'image-handle' | 'selectable-object' | 'empty'
+	type: 'resize-handle' | 'rotate-handle' | 'move-handle' | 'widget-body' | 'image-handle' | 'selectable-object' | 'empty'
 	object?: THREE.Object3D
 	intersection?: THREE.Intersection
 	handleType?: 'x' | 'y' | 'center'
@@ -17,7 +17,7 @@ export function performHitTest(
 		return { type: 'empty' }
 	}
 
-	// Priority 1: Resize handles (widget colliders)
+	// Priority 1: Widget handles (resize or rotate)
 	if (widget) {
 		widget.updateMatrixWorld(true)
 		
@@ -34,11 +34,55 @@ export function performHitTest(
 		if (colliderIntersects.length > 0) {
 			const intersected = colliderIntersects[0].object
 
+			// Check if this is a move widget
+			let isMoveWidget = false
+			widget.traverse((child) => {
+				if (child.userData.isMoveWidget) {
+					isMoveWidget = true
+				}
+			})
+
 			// Traverse up to find handle identification
 			let currentObject: THREE.Object3D | null = intersected
 			while (currentObject && currentObject !== widget) {
 				// Check colliders (isHitTest)
 				if (currentObject.userData.isHitTest) {
+					// Check for rotate handle first
+					if (currentObject.userData.isRotateHandle) {
+						return {
+							type: 'rotate-handle',
+							object: intersected,
+							intersection: colliderIntersects[0],
+						}
+					}
+					// Check for move handles if it's a move widget
+					if (isMoveWidget) {
+						if (currentObject.userData.isXAxis || currentObject.userData.isXHandle) {
+							return {
+								type: 'move-handle',
+								object: intersected,
+								intersection: colliderIntersects[0],
+								handleType: 'x',
+							}
+						}
+						if (currentObject.userData.isYAxis || currentObject.userData.isYHandle) {
+							return {
+								type: 'move-handle',
+								object: intersected,
+								intersection: colliderIntersects[0],
+								handleType: 'y',
+							}
+						}
+						if (currentObject.userData.isCenterHandle) {
+							return {
+								type: 'move-handle',
+								object: intersected,
+								intersection: colliderIntersects[0],
+								handleType: 'center',
+							}
+						}
+					}
+					// Then check for resize handles (if not move widget)
 					if (currentObject.userData.isXAxis || currentObject.userData.isXHandle) {
 						return {
 							type: 'resize-handle',

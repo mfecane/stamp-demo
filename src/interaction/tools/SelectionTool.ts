@@ -27,7 +27,7 @@ export class SelectionTool extends Tool {
 		const hitResult = performHitTest(this.context.raycaster, widget, tube, storeState.imageHandle)
 
 		// If clicked on widget or image handle, don't place new stamp
-		if (hitResult.type === 'resize-handle' || hitResult.type === 'widget-body' || hitResult.type === 'image-handle') {
+		if (hitResult.type === 'resize-handle' || hitResult.type === 'rotate-handle' || hitResult.type === 'widget-body' || hitResult.type === 'image-handle') {
 			return
 		}
 
@@ -52,7 +52,7 @@ export class SelectionTool extends Tool {
 				const faceIndex = intersection.faceIndex ?? 0
 				const { uAxis, vAxis } = calculateTangentVectors(tube.geometry, faceIndex, normal)
 
-				const copySize = canvas.width * 0.1
+				const copySize = canvas.width * 0.4
 
 				const stampInfo = {
 					uv,
@@ -61,12 +61,13 @@ export class SelectionTool extends Tool {
 					uAxis,
 					vAxis,
 					normal,
+					rotation: 0,
 				}
 
 				storeState.setStampInfo(stampInfo)
 
 				// Draw stamp using CanvasRenderer
-				CanvasRenderer.drawStamp(canvas, sourceImage, uv, copySize, copySize)
+				CanvasRenderer.drawStamp(canvas, sourceImage, uv, copySize, copySize, 0)
 
 				// Force texture update
 				const texture = storeState.texture

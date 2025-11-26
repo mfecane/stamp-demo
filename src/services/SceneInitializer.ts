@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { BentTubeGeometry } from '@/lib/geometries'
+import { createGradientSkybox } from '@/lib/gradientSkybox'
 
 export interface SceneConfig {
 	container: HTMLElement
@@ -14,18 +15,17 @@ export interface SceneObjects {
 	renderer: THREE.WebGLRenderer
 	controls: OrbitControls
 	tube: THREE.Mesh
-	plane: THREE.Mesh
 	canvas: HTMLCanvasElement
 	texture: THREE.CanvasTexture
+	skybox: THREE.Mesh
 }
 
 export class SceneInitializer {
 	static createScene(config: SceneConfig): SceneObjects {
 		const scene = new THREE.Scene()
-		scene.background = new THREE.Color(0x222222)
 
 		const camera = new THREE.PerspectiveCamera(75, config.width / config.height, 0.1, 1000)
-		camera.position.set(5, 5, 5)
+		camera.position.set(3, 3, 3)
 		camera.lookAt(0, 0, 0)
 
 		const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -46,7 +46,10 @@ export class SceneInitializer {
 
 		this.setupLighting(scene)
 
-		const { tube, plane, canvas, texture } = this.createGeometry(scene)
+		const { tube, canvas, texture } = this.createGeometry(scene)
+		
+		const skybox = createGradientSkybox()
+		scene.add(skybox)
 
 		return {
 			scene,
@@ -54,9 +57,9 @@ export class SceneInitializer {
 			renderer,
 			controls,
 			tube,
-			plane,
 			canvas,
 			texture,
+			skybox,
 		}
 	}
 
@@ -92,7 +95,6 @@ export class SceneInitializer {
 
 	private static createGeometry(scene: THREE.Scene): {
 		tube: THREE.Mesh
-		plane: THREE.Mesh
 		canvas: HTMLCanvasElement
 		texture: THREE.CanvasTexture
 	} {
@@ -109,7 +111,7 @@ export class SceneInitializer {
 		canvasTexture.repeat.set(1, 1)
 		canvasTexture.needsUpdate = true
 
-		const tubeGeometry = new BentTubeGeometry(0.4, 32, 80)
+		const tubeGeometry = new BentTubeGeometry(0.5, 32, 80)
 		const tubeMaterial = new THREE.MeshPhysicalMaterial({
 			map: canvasTexture,
 			color: 0xffffff,
@@ -120,24 +122,12 @@ export class SceneInitializer {
 			reflectivity: 0.2,
 		})
 		const tube = new THREE.Mesh(tubeGeometry, tubeMaterial)
-		tube.position.set(0, -1, 0)
+		tube.position.set(0, -2, 0)
 		tube.castShadow = true
 		tube.receiveShadow = true
 		scene.add(tube)
 
-		const planeGeometry = new THREE.PlaneGeometry(10, 10)
-		const planeMaterial = new THREE.MeshStandardMaterial({
-			color: 0x333333,
-			roughness: 0.8,
-			metalness: 0.2,
-		})
-		const plane = new THREE.Mesh(planeGeometry, planeMaterial)
-		plane.rotation.x = -Math.PI / 2
-		plane.position.y = -1
-		plane.receiveShadow = true
-		scene.add(plane)
-
-		return { tube, plane, canvas, texture: canvasTexture }
+		return { tube, canvas, texture: canvasTexture }
 	}
 }
 

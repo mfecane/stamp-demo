@@ -9,6 +9,7 @@ export interface StampInfo {
 	uAxis: THREE.Vector3
 	vAxis: THREE.Vector3
 	normal: THREE.Vector3
+	rotation: number // Rotation angle in radians
 }
 
 export interface StampState {
@@ -19,6 +20,8 @@ export interface StampState {
 	imageHandle: THREE.Group | null
 	setImageHandle: (handle: THREE.Group | null) => void
 	redrawStamp: (canvas: HTMLCanvasElement | null, sourceImage: HTMLImageElement | null, texture: THREE.CanvasTexture | null) => void
+	isMoveMode: boolean
+	setIsMoveMode: (enabled: boolean) => void
 }
 
 export const useStampStore = create<StampState>((set, get) => ({
@@ -32,11 +35,13 @@ export const useStampStore = create<StampState>((set, get) => ({
 		const { stampInfo } = get()
 		if (!stampInfo || !canvas || !sourceImage) return
 
-		CanvasRenderer.drawStamp(canvas, sourceImage, stampInfo.uv, stampInfo.sizeX, stampInfo.sizeY)
+		CanvasRenderer.drawStamp(canvas, sourceImage, stampInfo.uv, stampInfo.sizeX, stampInfo.sizeY, stampInfo.rotation)
 
 		if (texture) {
 			CanvasRenderer.updateTexture(texture)
 		}
 	},
+	isMoveMode: false,
+	setIsMoveMode: (enabled) => set({ isMoveMode: enabled }),
 }))
 

@@ -23,6 +23,8 @@ export interface EditorState {
 	widget: ReturnType<typeof useWidgetStore>['widget']
 	setWidget: ReturnType<typeof useWidgetStore>['setWidget']
 	createWidget: ReturnType<typeof useWidgetStore>['createWidget']
+	createRotateWidget: ReturnType<typeof useWidgetStore>['createRotateWidget']
+	createMoveWidget: ReturnType<typeof useWidgetStore>['createMoveWidget']
 
 	// Stamp
 	stampInfo: ReturnType<typeof useStampStore>['stampInfo']
@@ -32,6 +34,8 @@ export interface EditorState {
 	imageHandle: ReturnType<typeof useStampStore>['imageHandle']
 	setImageHandle: ReturnType<typeof useStampStore>['setImageHandle']
 	redrawStamp: () => void
+	isMoveMode: ReturnType<typeof useStampStore>['isMoveMode']
+	setIsMoveMode: ReturnType<typeof useStampStore>['setIsMoveMode']
 
 	// Texture
 	canvas: ReturnType<typeof useTextureStore>['canvas']
@@ -71,6 +75,8 @@ export const useEditorStore = (): EditorState => {
 		widget: widgetStore.widget,
 		setWidget: widgetStore.setWidget,
 		createWidget: widgetStore.createWidget,
+		createRotateWidget: widgetStore.createRotateWidget,
+		createMoveWidget: widgetStore.createMoveWidget,
 
 		// Stamp
 		stampInfo: stampStore.stampInfo,
@@ -83,6 +89,8 @@ export const useEditorStore = (): EditorState => {
 			const currentTextureState = useTextureStore.getState()
 			stampStore.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
 		},
+		isMoveMode: stampStore.isMoveMode,
+		setIsMoveMode: stampStore.setIsMoveMode,
 
 		// Texture
 		canvas: textureStore.canvas,
@@ -115,6 +123,8 @@ export const useEditorStore = (): EditorState => {
 				widget: widgetState.widget,
 				setWidget: widgetState.setWidget,
 				createWidget: widgetState.createWidget,
+				createRotateWidget: widgetState.createRotateWidget,
+				createMoveWidget: widgetState.createMoveWidget,
 				stampInfo: stampState.stampInfo,
 				setStampInfo: stampState.setStampInfo,
 				selectedStampId: stampState.selectedStampId,
@@ -125,6 +135,8 @@ export const useEditorStore = (): EditorState => {
 					const currentTextureState = useTextureStore.getState()
 					stampState.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
 				},
+				isMoveMode: stampState.isMoveMode,
+				setIsMoveMode: stampState.setIsMoveMode,
 				canvas: textureState.canvas,
 				setCanvas: textureState.setCanvas,
 				texture: textureState.texture,
@@ -160,6 +172,7 @@ useEditorStore.getState = (): EditorState => {
 		widget: widgetState.widget,
 		setWidget: widgetState.setWidget,
 		createWidget: widgetState.createWidget,
+		createRotateWidget: widgetState.createRotateWidget,
 		stampInfo: stampState.stampInfo,
 		setStampInfo: stampState.setStampInfo,
 		selectedStampId: stampState.selectedStampId,
@@ -170,6 +183,8 @@ useEditorStore.getState = (): EditorState => {
 			const currentTextureState = useTextureStore.getState()
 			stampState.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
 		},
+		isMoveMode: stampState.isMoveMode,
+		setIsMoveMode: stampState.setIsMoveMode,
 		canvas: textureState.canvas,
 		setCanvas: textureState.setCanvas,
 		texture: textureState.texture,

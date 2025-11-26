@@ -4,16 +4,22 @@ import { OrbitTool } from './tools/OrbitTool'
 import { DragTool } from './tools/DragTool'
 import { ResizeTool } from './tools/ResizeTool'
 import { SelectionTool } from './tools/SelectionTool'
+import { MoveTool } from './tools/MoveTool'
+import { RotateTool } from './tools/RotateTool'
 
 export interface IToolFactory {
 	createTool(hitResult: HitResult, context: ToolContext, storeState: any): Tool | null
-	getStateForTool(hitResult: HitResult, storeState: any): 'idle' | 'orbit' | 'drag' | 'resize'
+	getStateForTool(hitResult: HitResult, storeState: any): 'idle' | 'orbit' | 'drag' | 'resize' | 'move' | 'rotate'
 }
 
 export class ToolFactory implements IToolFactory {
 	createTool(hitResult: HitResult, context: ToolContext, storeState: any): Tool | null {
 		if (hitResult.type === 'resize-handle') {
 			return new ResizeTool(context, hitResult.handleType)
+		} else if (hitResult.type === 'rotate-handle') {
+			return new RotateTool(context)
+		} else if (hitResult.type === 'move-handle') {
+			return new MoveTool(context, hitResult.handleType)
 		} else if (hitResult.type === 'widget-body') {
 			return new DragTool(context)
 		} else if (hitResult.type === 'selectable-object') {
@@ -28,9 +34,13 @@ export class ToolFactory implements IToolFactory {
 		return null
 	}
 
-	getStateForTool(hitResult: HitResult, storeState: any): 'idle' | 'orbit' | 'drag' | 'resize' {
+	getStateForTool(hitResult: HitResult, storeState: any): 'idle' | 'orbit' | 'drag' | 'resize' | 'move' | 'rotate' {
 		if (hitResult.type === 'resize-handle') {
 			return 'resize'
+		} else if (hitResult.type === 'rotate-handle') {
+			return 'rotate'
+		} else if (hitResult.type === 'move-handle') {
+			return 'move'
 		} else if (hitResult.type === 'widget-body') {
 			return 'drag'
 		} else if (hitResult.type === 'selectable-object') {
