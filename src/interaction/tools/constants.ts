@@ -4,6 +4,6 @@ export const RESIZE_CONSTANTS = {
 } as const
 
 export const MOVE_CONSTANTS = {
-	SENSITIVITY: 0.1, // Sensitivity factor for UV movement
+	SENSITIVITY: 0.5, // Sensitivity factor for UV movement
 } as const
 

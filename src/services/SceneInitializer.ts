@@ -25,7 +25,7 @@ export class SceneInitializer {
 		const scene = new THREE.Scene()
 
 		const camera = new THREE.PerspectiveCamera(75, config.width / config.height, 0.1, 1000)
-		camera.position.set(3, 3, 3)
+		camera.position.set(2.0, 2.0, 2.0)
 		camera.lookAt(0, 0, 0)
 
 		const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -38,7 +38,7 @@ export class SceneInitializer {
 		const controls = new OrbitControls(camera, renderer.domElement)
 		controls.enableDamping = true
 		controls.dampingFactor = 0.05
-		controls.minDistance = 2
+		controls.minDistance = 1
 		controls.maxDistance = 20
 		controls.enablePan = true
 		controls.enableZoom = true

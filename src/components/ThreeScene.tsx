@@ -7,6 +7,9 @@ import { normalizePointerEvent } from '@/interaction/utils/eventNormalization'
 import { SceneInitializer } from '@/services/SceneInitializer'
 import { StampContextMenu } from './StampContextMenu'
 import { getPositionFromUV } from '@/interaction/tools/MoveTool'
+import { placeStampAtIntersection } from '@/lib/stampPlacement'
+import { normalizeMousePosition } from '@/interaction/utils/mousePosition'
+import { updateCameraMatrix } from '@/interaction/utils/cameraUpdates'
 
 interface ThreeSceneProps {
 	imageUrl: string | null
@@ -127,6 +130,55 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 		renderer.domElement.addEventListener('pointermove', handlePointerMove)
 		renderer.domElement.addEventListener('pointerup', handlePointerUp)
 
+		// Drag and drop handlers for image placement
+		const handleDragOver = (event: DragEvent) => {
+			event.preventDefault()
+			event.stopPropagation()
+			event.dataTransfer!.dropEffect = 'copy'
+		}
+
+		const handleDrop = (event: DragEvent) => {
+			event.preventDefault()
+			event.stopPropagation()
+
+			// Get current store state
+			const storeState = useEditorStore.getState()
+			const tube = storeState.tube
+			const sourceImage = storeState.sourceImage
+
+			// Early return if source image is not available or tube doesn't exist
+			if (!sourceImage || !tube) {
+				return
+			}
+
+			// Don't place if stamp already exists
+			if (storeState.stampInfo) {
+				return
+			}
+
+			// Update camera matrix to ensure it's current
+			updateCameraMatrix(camera)
+
+			// Calculate mouse position from drop event
+			const rect = renderer.domElement.getBoundingClientRect()
+			const mouse = new THREE.Vector2()
+			mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+			mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+			// Perform raycast
+			const raycaster = new THREE.Raycaster()
+			raycaster.setFromCamera(mouse, camera)
+
+			// Check for intersection with tube
+			const tubeIntersects = raycaster.intersectObject(tube)
+			if (tubeIntersects.length > 0) {
+				placeStampAtIntersection(tubeIntersects[0], tube, storeState)
+			}
+		}
+
+		renderer.domElement.addEventListener('dragover', handleDragOver)
+		renderer.domElement.addEventListener('drop', handleDrop)
+
 		let animationId: number
 		const animate = () => {
 			animationId = requestAnimationFrame(animate)
@@ -166,6 +218,8 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 			renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
 			renderer.domElement.removeEventListener('pointermove', handlePointerMove)
 			renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+			renderer.domElement.removeEventListener('dragover', handleDragOver)
+			renderer.domElement.removeEventListener('drop', handleDrop)
 			window.removeEventListener('resize', handleResize)
 			resizeObserver.disconnect()
 			controls.dispose()

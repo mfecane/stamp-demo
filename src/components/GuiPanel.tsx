@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+
 interface GuiPanelProps {
   onImageSelect: (url: string) => void
   isImageActive: boolean
@@ -6,10 +8,30 @@ interface GuiPanelProps {
 
 function GuiPanel({ onImageSelect, isImageActive, isStampPlaced }: GuiPanelProps) {
   const imagePath = `${import.meta.env.BASE_URL}assets/stamp-image.jpg`
+  const imageRef = useRef<HTMLImageElement>(null)
   
   const handleImageClick = () => {
     if (isStampPlaced) return
     onImageSelect(imagePath)
+  }
+
+  const handleDragStart = (e: React.DragEvent) => {
+    if (isStampPlaced) {
+      e.preventDefault()
+      return
+    }
+    // Load image if not already loaded
+    if (!isImageActive) {
+      onImageSelect(imagePath)
+    }
+    // Set drag data
+    e.dataTransfer.effectAllowed = 'copy'
+    e.dataTransfer.setData('text/plain', imagePath)
+    // Use the displayed image element as drag image (already properly sized)
+    if (imageRef.current) {
+      const rect = imageRef.current.getBoundingClientRect()
+      e.dataTransfer.setDragImage(imageRef.current, rect.width / 2, rect.height / 2)
+    }
   }
 
   const isDisabled = isStampPlaced
@@ -22,40 +44,32 @@ function GuiPanel({ onImageSelect, isImageActive, isStampPlaced }: GuiPanelProps
         <div className="space-y-4">
           <div>
             <p className="block text-sm font-medium text-foreground mb-2">
-              {isDisabled ? 'Stamp already placed' : 'Click image to activate stamp placement'}
+              {isDisabled ? 'Stamp already placed' : 'Drag image to place stamp'}
             </p>
             <div
               onClick={handleImageClick}
+              draggable={!isDisabled}
+              onDragStart={handleDragStart}
               className={`relative w-full aspect-square rounded-md border-2 overflow-hidden transition-all ${
                 isDisabled
                   ? 'border-muted cursor-not-allowed opacity-60'
                   : isImageActive
-                  ? 'border-primary ring-2 ring-primary ring-offset-2 cursor-pointer'
-                  : 'border-input hover:border-primary/50 cursor-pointer'
+                  ? 'border-primary ring-2 ring-primary ring-offset-2 cursor-grab active:cursor-grabbing'
+                  : 'border-input hover:border-primary/50 cursor-grab active:cursor-grabbing'
               }`}
             >
               <img
+                ref={imageRef}
                 src={imagePath}
                 alt="Stamp image"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain pointer-events-none"
+                draggable={false}
               />
-              {isImageActive && !isDisabled && (
-                <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
-                  <span className="text-primary font-semibold text-sm">Active - Click on mesh to place</span>
-                </div>
-              )}
-              {isDisabled && (
-                <div className="absolute inset-0 bg-muted/20 flex items-center justify-center">
-                  <span className="text-muted-foreground font-semibold text-sm">Stamp Placed</span>
-                </div>
-              )}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               {isDisabled
                 ? 'A stamp has already been placed on the mesh. Remove it to place a new one.'
-                : isImageActive
-                ? 'Stamp placement active. Click on the 3D mesh to place the stamp.'
-                : 'Click the image above to activate stamp placement mode.'}
+                : 'Drag the image above onto the 3D mesh to place the stamp.'}
             </p>
           </div>
         </div>

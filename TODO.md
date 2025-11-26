@@ -3,4 +3,4 @@
 - widgets to classes
 - code review - state machine
 - scale widget center is wireframe
-
+- add lattice

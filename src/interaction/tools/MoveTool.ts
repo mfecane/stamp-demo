@@ -7,6 +7,69 @@ import { CanvasRenderer } from '@/services/CanvasRenderer'
 import { MOVE_CONSTANTS } from './constants'
 
 /**
+ * Get face index from UV coordinates by finding the closest face
+ */
+function getFaceIndexFromUV(
+	geometry: THREE.BufferGeometry,
+	targetUV: THREE.Vector2
+): number | null {
+	const uvs = geometry.attributes.uv
+	const indices = geometry.index
+
+	if (!indices || !uvs) {
+		return null
+	}
+
+	let closestFace = -1
+	let minDistance = Infinity
+	const targetU = targetUV.x
+	const targetV = targetUV.y
+
+	// Find the face with UV coordinates closest to target
+	for (let i = 0; i < indices.count / 3; i++) {
+		const i0 = indices.getX(i * 3)
+		const i1 = indices.getX(i * 3 + 1)
+		const i2 = indices.getX(i * 3 + 2)
+
+		const uv0 = new THREE.Vector2(uvs.getX(i0), uvs.getY(i0))
+		const uv1 = new THREE.Vector2(uvs.getX(i1), uvs.getY(i1))
+		const uv2 = new THREE.Vector2(uvs.getX(i2), uvs.getY(i2))
+
+		// Calculate barycentric coordinates
+		const v0 = uv1.clone().sub(uv0)
+		const v1 = uv2.clone().sub(uv0)
+		const v2 = targetUV.clone().sub(uv0)
+
+		const dot00 = v0.dot(v0)
+		const dot01 = v0.dot(v1)
+		const dot02 = v0.dot(v2)
+		const dot11 = v1.dot(v1)
+		const dot12 = v1.dot(v2)
+
+		const invDenom = 1 / (dot00 * dot11 - dot01 * dot01)
+		const u = (dot11 * dot02 - dot01 * dot12) * invDenom
+		const v = (dot00 * dot12 - dot01 * dot02) * invDenom
+
+		// Check if point is inside triangle (with some tolerance for edge cases)
+		if (u >= -0.1 && v >= -0.1 && u + v <= 1.1) {
+			// Calculate distance from triangle center
+			const centerU = (uv0.x + uv1.x + uv2.x) / 3
+			const centerV = (uv0.y + uv1.y + uv2.y) / 3
+			const dist = Math.sqrt(
+				Math.pow(targetU - centerU, 2) + Math.pow(targetV - centerV, 2)
+			)
+
+			if (dist < minDistance) {
+				minDistance = dist
+				closestFace = i
+			}
+		}
+	}
+
+	return closestFace === -1 ? null : closestFace
+}
+
+/**
  * Get 3D position on mesh from UV coordinates by finding the closest face
  * and interpolating the position
  */
@@ -320,52 +383,123 @@ export class MoveTool extends Tool {
 
 		newUV = new THREE.Vector2(newU, newV)
 
-		// Update stamp info with new UV coordinates
-		storeState.setStampInfo({
-			...stampInfo,
-			uv: newUV,
-		})
-
-		// Redraw stamp at new position
-		CanvasRenderer.drawStamp(canvas, sourceImage, newUV, stampInfo.sizeX, stampInfo.sizeY, stampInfo.rotation || 0)
-		CanvasRenderer.updateTexture(texture)
-
-		// Force material update if it's using the texture
-		const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
-		if (tubeMaterial && tubeMaterial.map === texture) {
-			tubeMaterial.needsUpdate = true
-		}
-
 		// Update widget position based on actual 3D position from new UV coordinates
 		const newPosition = getPositionFromUV(tube.geometry, tube, newUV)
 		if (newPosition) {
 			widget.position.copy(newPosition)
 			
-			// Update widget orientation based on current normal and axes, applying rotation
-			// Negate rotation to match canvas 2D rotation direction (canvas positive = counter-clockwise)
-			const normalizedN = stampInfo.normal.clone().normalize()
-			const rotation = stampInfo.rotation || 0
-			const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(normalizedN, -rotation)
-			
-			const rotatedU = stampInfo.uAxis.clone().applyQuaternion(rotationQuaternion)
-			const rotatedV = stampInfo.vAxis.clone().applyQuaternion(rotationQuaternion)
+			// Recalculate axes at the new position
+			const faceIndex = getFaceIndexFromUV(tube.geometry, newUV)
+			if (faceIndex !== null) {
+				// Calculate normal from the face
+				const positions = tube.geometry.attributes.position
+				const indices = tube.geometry.index
+				if (indices && positions) {
+					const i0 = indices.getX(faceIndex * 3)
+					const i1 = indices.getX(faceIndex * 3 + 1)
+					const i2 = indices.getX(faceIndex * 3 + 2)
 
-			const normalizedU = rotatedU.clone().normalize()
-			const normalizedV = rotatedV.clone().normalize()
+					const v0 = new THREE.Vector3(positions.getX(i0), positions.getY(i0), positions.getZ(i0))
+					const v1 = new THREE.Vector3(positions.getX(i1), positions.getY(i1), positions.getZ(i1))
+					const v2 = new THREE.Vector3(positions.getX(i2), positions.getY(i2), positions.getZ(i2))
 
-			const correctedV = normalizedV.clone().sub(normalizedU.clone().multiplyScalar(normalizedU.dot(normalizedV)))
-			correctedV.normalize()
-			const correctedN = new THREE.Vector3().crossVectors(normalizedU, correctedV).normalize()
-			if (correctedN.dot(normalizedN) < 0) {
-				correctedN.negate()
+					const edge1 = v1.clone().sub(v0)
+					const edge2 = v2.clone().sub(v0)
+					const normal = new THREE.Vector3().crossVectors(edge1, edge2).normalize()
+					normal.transformDirection(tube.matrixWorld)
+
+					// Recalculate tangent vectors at the new face
+					const { uAxis, vAxis } = calculateTangentVectors(tube.geometry, faceIndex, normal)
+
+					// Update stamp info with new UV, axes, and normal
+					storeState.setStampInfo({
+						...stampInfo,
+						uv: newUV,
+						uAxis,
+						vAxis,
+						normal,
+					})
+
+					// Redraw stamp at new position
+					CanvasRenderer.drawStamp(canvas, sourceImage, newUV, stampInfo.sizeX, stampInfo.sizeY, stampInfo.rotation || 0)
+					CanvasRenderer.updateTexture(texture)
+
+					// Force material update if it's using the texture
+					const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
+					if (tubeMaterial && tubeMaterial.map === texture) {
+						tubeMaterial.needsUpdate = true
+					}
+
+					// Update widget orientation based on new normal and axes, applying rotation
+					// Negate rotation to match canvas 2D rotation direction (canvas positive = counter-clockwise)
+					const normalizedN = normal.clone().normalize()
+					const rotation = stampInfo.rotation || 0
+					const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(normalizedN, -rotation)
+					
+					const rotatedU = uAxis.clone().applyQuaternion(rotationQuaternion)
+					const rotatedV = vAxis.clone().applyQuaternion(rotationQuaternion)
+
+					const normalizedU = rotatedU.clone().normalize()
+					const normalizedV = rotatedV.clone().normalize()
+
+					const correctedV = normalizedV.clone().sub(normalizedU.clone().multiplyScalar(normalizedU.dot(normalizedV)))
+					correctedV.normalize()
+					const correctedN = new THREE.Vector3().crossVectors(normalizedU, correctedV).normalize()
+					if (correctedN.dot(normalizedN) < 0) {
+						correctedN.negate()
+					}
+
+					const quaternion = new THREE.Quaternion()
+					const matrix = new THREE.Matrix4()
+					matrix.makeBasis(normalizedU, correctedV, correctedN)
+					quaternion.setFromRotationMatrix(matrix)
+					widget.quaternion.copy(quaternion)
+					widget.updateMatrixWorld(true)
+				}
+			} else {
+				// Fallback: use existing axes if face index not found
+				// Update stamp info with new UV coordinates
+				storeState.setStampInfo({
+					...stampInfo,
+					uv: newUV,
+				})
+
+				// Redraw stamp at new position
+				CanvasRenderer.drawStamp(canvas, sourceImage, newUV, stampInfo.sizeX, stampInfo.sizeY, stampInfo.rotation || 0)
+				CanvasRenderer.updateTexture(texture)
+
+				// Force material update if it's using the texture
+				const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
+				if (tubeMaterial && tubeMaterial.map === texture) {
+					tubeMaterial.needsUpdate = true
+				}
+
+				// Update widget orientation based on current normal and axes, applying rotation
+				// Negate rotation to match canvas 2D rotation direction (canvas positive = counter-clockwise)
+				const normalizedN = stampInfo.normal.clone().normalize()
+				const rotation = stampInfo.rotation || 0
+				const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(normalizedN, -rotation)
+				
+				const rotatedU = stampInfo.uAxis.clone().applyQuaternion(rotationQuaternion)
+				const rotatedV = stampInfo.vAxis.clone().applyQuaternion(rotationQuaternion)
+
+				const normalizedU = rotatedU.clone().normalize()
+				const normalizedV = rotatedV.clone().normalize()
+
+				const correctedV = normalizedV.clone().sub(normalizedU.clone().multiplyScalar(normalizedU.dot(normalizedV)))
+				correctedV.normalize()
+				const correctedN = new THREE.Vector3().crossVectors(normalizedU, correctedV).normalize()
+				if (correctedN.dot(normalizedN) < 0) {
+					correctedN.negate()
+				}
+
+				const quaternion = new THREE.Quaternion()
+				const matrix = new THREE.Matrix4()
+				matrix.makeBasis(normalizedU, correctedV, correctedN)
+				quaternion.setFromRotationMatrix(matrix)
+				widget.quaternion.copy(quaternion)
+				widget.updateMatrixWorld(true)
 			}
-
-			const quaternion = new THREE.Quaternion()
-			const matrix = new THREE.Matrix4()
-			matrix.makeBasis(normalizedU, correctedV, correctedN)
-			quaternion.setFromRotationMatrix(matrix)
-			widget.quaternion.copy(quaternion)
-			widget.updateMatrixWorld(true)
 		}
 
 		// Image handle is decoupled - it will be updated separately based on stamp position

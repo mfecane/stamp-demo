@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as THREE from 'three'
-import { Maximize2, Trash2, X, Move, RotateCw } from 'lucide-react'
+import { Maximize2, Trash2, X, Move, RotateCw, Check } from 'lucide-react'
 import { useEditorStore } from '@/store/editorStore'
 import { worldToScreen } from '@/lib/utils'
 import { CanvasRenderer } from '@/services/CanvasRenderer'
@@ -195,7 +195,7 @@ export function StampContextMenu() {
 								onClick={handleExitWidget}
 								className="p-2 hover:bg-accent rounded transition-colors"
 							>
-								<X className="w-4 h-4" />
+								<Check className="w-4 h-4" />
 							</button>
 						</TooltipTrigger>
 						<TooltipContent>

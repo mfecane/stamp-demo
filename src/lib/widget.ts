@@ -41,10 +41,10 @@ export function createScalingWidget(
 
 	widget.visible = true
 
-	const arrowLength = 0.2
-	const arrowHeadLength = 0.05
-	const arrowHeadWidth = 0.03
-	const hitTestSize = 0.04
+	const arrowLength = 0.36
+	const arrowHeadLength = 0.09
+	const arrowHeadWidth = 0.054
+	const hitTestSize = 0.072
 
 	const xAxisHelper = new THREE.ArrowHelper(
 		new THREE.Vector3(1, 0, 0),
@@ -82,7 +82,7 @@ export function createScalingWidget(
 	}
 	widget.add(yAxisHelper)
 
-	const centerGeometry = new THREE.SphereGeometry(0.02, 16, 16)
+	const centerGeometry = new THREE.SphereGeometry(0.036, 16, 16)
 	const centerMaterial = new THREE.MeshBasicMaterial({ 
 		color: 0xffff00,
 		depthTest: false
@@ -91,7 +91,7 @@ export function createScalingWidget(
 	centerHandle.userData.isCenterHandle = true
 	widget.add(centerHandle)
 
-	const xHandleGeometry = new THREE.SphereGeometry(0.015, 16, 16)
+	const xHandleGeometry = new THREE.SphereGeometry(0.027, 16, 16)
 	const xHandleMaterial = new THREE.MeshBasicMaterial({ 
 		color: 0xff0000,
 		depthTest: false
@@ -115,7 +115,7 @@ export function createScalingWidget(
 	xHandleWireframe.userData.isXHandle = true
 	widget.add(xHandleWireframe)
 
-	const yHandleGeometry = new THREE.SphereGeometry(0.015, 16, 16)
+	const yHandleGeometry = new THREE.SphereGeometry(0.027, 16, 16)
 	const yHandleMaterial = new THREE.MeshBasicMaterial({ 
 		color: 0x00ff00,
 		depthTest: false
@@ -258,10 +258,10 @@ export function createMoveWidget(
 	widget.visible = true
 	widget.userData.isMoveWidget = true
 
-	const arrowLength = 0.2
-	const arrowHeadLength = 0.05
-	const arrowHeadWidth = 0.03
-	const hitTestSize = 0.04
+	const arrowLength = 0.36
+	const arrowHeadLength = 0.09
+	const arrowHeadWidth = 0.054
+	const hitTestSize = 0.072
 
 	const xAxisHelper = new THREE.ArrowHelper(
 		new THREE.Vector3(1, 0, 0),
@@ -301,7 +301,7 @@ export function createMoveWidget(
 	}
 	widget.add(yAxisHelper)
 
-	const centerGeometry = new THREE.SphereGeometry(0.02, 16, 16)
+	const centerGeometry = new THREE.SphereGeometry(0.036, 16, 16)
 	const centerMaterial = new THREE.MeshBasicMaterial({ 
 		color: 0xffff00,
 		depthTest: false
@@ -311,7 +311,7 @@ export function createMoveWidget(
 	centerHandle.userData.isMoveWidget = true
 	widget.add(centerHandle)
 
-	const xHandleGeometry = new THREE.SphereGeometry(0.015, 16, 16)
+	const xHandleGeometry = new THREE.SphereGeometry(0.027, 16, 16)
 	const xHandleMaterial = new THREE.MeshBasicMaterial({ 
 		color: 0xff0000,
 		depthTest: false
@@ -337,7 +337,7 @@ export function createMoveWidget(
 	xHandleWireframe.userData.isMoveWidget = true
 	widget.add(xHandleWireframe)
 
-	const yHandleGeometry = new THREE.SphereGeometry(0.015, 16, 16)
+	const yHandleGeometry = new THREE.SphereGeometry(0.027, 16, 16)
 	const yHandleMaterial = new THREE.MeshBasicMaterial({ 
 		color: 0x00ff00,
 		depthTest: false
@@ -476,12 +476,12 @@ export function createRotateWidget(
 
 	widget.visible = true
 
-	const handleRadius = 0.15
-	const handleSize = 0.02
-	const hitTestSize = 0.04
+	const handleRadius = 0.27
+	const handleSize = 0.036
+	const hitTestSize = 0.072
 
 	// Create a circle/ring to show rotation
-	const ringGeometry = new THREE.RingGeometry(handleRadius - 0.01, handleRadius + 0.01, 32)
+	const ringGeometry = new THREE.RingGeometry(handleRadius - 0.018, handleRadius + 0.018, 32)
 	const ringMaterial = new THREE.MeshBasicMaterial({ 
 		color: 0x0080ff,
 		side: THREE.DoubleSide,
