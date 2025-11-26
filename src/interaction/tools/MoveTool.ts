@@ -1,10 +1,10 @@
 import * as THREE from 'three'
 import { Tool, NormalizedPointerEvent } from '../Tool'
 import { calculateTangentVectors } from '@/lib/utils'
-import { CanvasRenderer } from '@/services/CanvasRenderer'
 import { MOVE_CONSTANTS } from './constants'
 import { getFaceIndexFromUV, getPositionFromUV } from '@/lib/utils/uvCalculations'
 import { updateWidgetOrientation } from '@/lib/utils/widgetOrientation'
+import { updateLatticeMeshTransform } from '@/lib/lattice/LatticeMesh'
 
 // Re-export for backward compatibility
 export { getPositionFromUV }
@@ -60,12 +60,9 @@ export class MoveTool extends Tool {
 		const widget = storeState.widget
 		const stampInfo = storeState.stampInfo
 		const tube = storeState.tube
-		const canvas = storeState.canvas
-		const sourceImage = storeState.sourceImage
-		const texture = storeState.texture
 		const scene = storeState.scene
 
-		if (!widget || !stampInfo || !tube || !canvas || !sourceImage || !texture || !scene) return
+		if (!widget || !stampInfo || !tube || !scene) return
 
 		const widgetGroup = widget.getGroup()
 		// Get widget's world position and axes
@@ -129,14 +126,29 @@ export class MoveTool extends Tool {
 				normal,
 			})
 
-			// Redraw stamp at new position
-			CanvasRenderer.drawStamp(canvas, sourceImage, uv, stampInfo.sizeX, stampInfo.sizeY, stampInfo.rotation || 0)
-			CanvasRenderer.updateTexture(texture)
+			// Update lattice mesh transform and redraw
+			const latticeMesh = storeState.latticeMesh
+			if (latticeMesh) {
+				updateLatticeMeshTransform(latticeMesh, {
+					uv,
+					sizeX: stampInfo.sizeX,
+					sizeY: stampInfo.sizeY,
+					rotation: stampInfo.rotation || 0,
+				})
+			}
 
-			// Force material update if it's using the texture
+			// Redraw stamp
+			const renderer = storeState.renderer
+			if (renderer && storeState.latticeRenderer) {
+				const newTexture = storeState.latticeRenderer.renderLatticeToTexture(latticeMesh, renderer)
 			const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
-			if (tubeMaterial && tubeMaterial.map === texture) {
+				if (tubeMaterial) {
+					if (tubeMaterial.map && tubeMaterial.map !== storeState.texture) {
+						tubeMaterial.map.dispose()
+					}
+					tubeMaterial.map = newTexture
 				tubeMaterial.needsUpdate = true
+				}
 			}
 
 			// Update widget position to intersection point
@@ -222,14 +234,29 @@ export class MoveTool extends Tool {
 						normal,
 					})
 
-					// Redraw stamp at new position
-					CanvasRenderer.drawStamp(canvas, sourceImage, newUV, stampInfo.sizeX, stampInfo.sizeY, stampInfo.rotation || 0)
-					CanvasRenderer.updateTexture(texture)
+					// Update lattice mesh transform and redraw
+					const latticeMesh = storeState.latticeMesh
+					if (latticeMesh) {
+						updateLatticeMeshTransform(latticeMesh, {
+							uv: newUV,
+							sizeX: stampInfo.sizeX,
+							sizeY: stampInfo.sizeY,
+							rotation: stampInfo.rotation || 0,
+						})
+					}
 
-					// Force material update if it's using the texture
+					// Redraw stamp
+					const renderer = storeState.renderer
+					if (renderer && storeState.latticeRenderer) {
+						const newTexture = storeState.latticeRenderer.renderLatticeToTexture(latticeMesh, renderer)
 					const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
-					if (tubeMaterial && tubeMaterial.map === texture) {
+						if (tubeMaterial) {
+							if (tubeMaterial.map && tubeMaterial.map !== storeState.texture) {
+								tubeMaterial.map.dispose()
+							}
+							tubeMaterial.map = newTexture
 						tubeMaterial.needsUpdate = true
+						}
 					}
 
 					// Update widget orientation based on new normal and axes, applying rotation
@@ -243,14 +270,29 @@ export class MoveTool extends Tool {
 					uv: newUV,
 				})
 
-				// Redraw stamp at new position
-				CanvasRenderer.drawStamp(canvas, sourceImage, newUV, stampInfo.sizeX, stampInfo.sizeY, stampInfo.rotation || 0)
-				CanvasRenderer.updateTexture(texture)
+				// Update lattice mesh transform and redraw
+				const latticeMesh = storeState.latticeMesh
+				if (latticeMesh) {
+					updateLatticeMeshTransform(latticeMesh, {
+						uv: newUV,
+						sizeX: stampInfo.sizeX,
+						sizeY: stampInfo.sizeY,
+						rotation: stampInfo.rotation || 0,
+					})
+				}
 
-				// Force material update if it's using the texture
+				// Redraw stamp
+				const renderer = storeState.renderer
+				if (renderer && storeState.latticeRenderer) {
+					const newTexture = storeState.latticeRenderer.renderLatticeToTexture(latticeMesh, renderer)
 				const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
-				if (tubeMaterial && tubeMaterial.map === texture) {
+					if (tubeMaterial) {
+						if (tubeMaterial.map && tubeMaterial.map !== storeState.texture) {
+							tubeMaterial.map.dispose()
+						}
+						tubeMaterial.map = newTexture
 					tubeMaterial.needsUpdate = true
+					}
 				}
 
 				// Update widget orientation based on current normal and axes, applying rotation

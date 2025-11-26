@@ -104,6 +104,26 @@ export function StampContextMenu() {
 		
 		// Update texture
 		CanvasRenderer.updateTexture(texture)
+		texture.needsUpdate = true
+
+		// Restore original canvas texture to tube material
+		const tube = store.tube
+		if (tube) {
+			const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
+			if (tubeMaterial) {
+				// Dispose render target texture if it exists
+				if (tubeMaterial.map && tubeMaterial.map !== texture) {
+					tubeMaterial.map.dispose()
+				}
+				// Restore original canvas texture
+				tubeMaterial.map = texture
+				tubeMaterial.needsUpdate = true
+			}
+		}
+
+		// Clear lattice mesh and renderer
+		store.setLatticeMesh(null)
+		store.setLatticeRenderer(null)
 
 		// Remove widget
 		const currentWidget = widget

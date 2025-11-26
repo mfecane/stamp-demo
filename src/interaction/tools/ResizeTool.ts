@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { Tool, NormalizedPointerEvent } from '../Tool'
 import { RESIZE_CONSTANTS } from './constants'
+import { updateLatticeMeshTransform } from '@/lib/lattice/LatticeMesh'
 
 export class ResizeTool extends Tool {
 	private initialMousePos = new THREE.Vector2()
@@ -50,9 +51,8 @@ export class ResizeTool extends Tool {
 
 		const widget = storeState.widget
 		const stampInfo = storeState.stampInfo
-		const canvas = storeState.canvas
 
-		if (!widget || !stampInfo || !canvas) return
+		if (!widget || !stampInfo) return
 
 		const widgetGroup = widget.getGroup()
 		// Get widget's world position and axes
@@ -84,15 +84,19 @@ export class ResizeTool extends Tool {
 		let newSizeX = this.initialSize.x
 		let newSizeY = this.initialSize.y
 
+		// Convert MIN_SIZE from pixels to UV units (assuming 1024x1024 canvas)
+		const MIN_SIZE_UV = RESIZE_CONSTANTS.MIN_SIZE / 1024
+		const MAX_SIZE_UV = 1.0 // Max size in UV units
+
 		if (this.handleType === 'x') {
 			const uComponent = deltaMouse.dot(screenU)
 			newSizeX = this.initialSize.x * (1 + uComponent * RESIZE_CONSTANTS.SCALING_FACTOR)
-			newSizeX = Math.max(RESIZE_CONSTANTS.MIN_SIZE, Math.min(canvas.width, newSizeX))
+			newSizeX = Math.max(MIN_SIZE_UV, Math.min(MAX_SIZE_UV, newSizeX))
 			newSizeY = this.initialSize.y
 		} else if (this.handleType === 'y') {
 			const vComponent = deltaMouse.dot(screenV)
 			newSizeY = this.initialSize.y * (1 + vComponent * RESIZE_CONSTANTS.SCALING_FACTOR)
-			newSizeY = Math.max(RESIZE_CONSTANTS.MIN_SIZE, Math.min(canvas.height, newSizeY))
+			newSizeY = Math.max(MIN_SIZE_UV, Math.min(MAX_SIZE_UV, newSizeY))
 			newSizeX = this.initialSize.x
 		} else if (this.handleType === 'center') {
 			const uComponent = deltaMouse.dot(screenU)
@@ -101,8 +105,8 @@ export class ResizeTool extends Tool {
 			const scaleFactor = 1 + avgComponent * RESIZE_CONSTANTS.SCALING_FACTOR
 			newSizeX = this.initialSize.x * scaleFactor
 			newSizeY = this.initialSize.y * scaleFactor
-			newSizeX = Math.max(RESIZE_CONSTANTS.MIN_SIZE, Math.min(canvas.width, newSizeX))
-			newSizeY = Math.max(RESIZE_CONSTANTS.MIN_SIZE, Math.min(canvas.height, newSizeY))
+			newSizeX = Math.max(MIN_SIZE_UV, Math.min(MAX_SIZE_UV, newSizeX))
+			newSizeY = Math.max(MIN_SIZE_UV, Math.min(MAX_SIZE_UV, newSizeY))
 		}
 
 		// Update stamp size in store
@@ -112,8 +116,22 @@ export class ResizeTool extends Tool {
 			sizeY: newSizeY,
 		})
 
+		// Update lattice mesh transform and redraw
+		const latticeMesh = storeState.latticeMesh
+		if (latticeMesh) {
+			updateLatticeMeshTransform(latticeMesh, {
+				uv: stampInfo.uv,
+				sizeX: newSizeX,
+				sizeY: newSizeY,
+				rotation: stampInfo.rotation || 0,
+			})
+		}
+
 		// Redraw stamp
-		storeState.redrawStamp()
+		const renderer = storeState.renderer
+		if (renderer) {
+			storeState.redrawStamp(renderer)
+		}
 	}
 
 	onPointerUp(_event: NormalizedPointerEvent): void {

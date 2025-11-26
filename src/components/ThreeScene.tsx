@@ -9,6 +9,8 @@ import { useWidgetPositionSync } from '@/hooks/useWidgetPositionSync'
 import { useSceneResize } from '@/hooks/useSceneResize'
 import { useSceneCursor } from '@/hooks/useSceneCursor'
 import { useImageHandleVisibility } from '@/hooks/useImageHandleVisibility'
+import { DebugTextureOverlay } from './DebugTextureOverlay'
+import { useLatticeRendering } from '@/hooks/useLatticeRendering'
 
 interface ThreeSceneProps {
 	imageUrl: string | null
@@ -47,6 +49,7 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 	return (
 		<div ref={mountRef} className="w-full h-full relative" style={{ minWidth: 0, minHeight: 0 }}>
 			<StampContextMenu />
+			<DebugTextureOverlay />
 		</div>
 	)
 }

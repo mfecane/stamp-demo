@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { Tool, NormalizedPointerEvent } from '../Tool'
+import { updateLatticeMeshTransform } from '@/lib/lattice/LatticeMesh'
 
 export class RotateTool extends Tool {
 	private initialMousePos = new THREE.Vector2()
@@ -82,8 +83,22 @@ export class RotateTool extends Tool {
 			rotation: newRotation,
 		})
 
+		// Update lattice mesh transform and redraw
+		const latticeMesh = storeState.latticeMesh
+		if (latticeMesh) {
+			updateLatticeMeshTransform(latticeMesh, {
+				uv: stampInfo.uv,
+				sizeX: stampInfo.sizeX,
+				sizeY: stampInfo.sizeY,
+				rotation: newRotation,
+			})
+		}
+
 		// Redraw stamp
-		storeState.redrawStamp()
+		const renderer = storeState.renderer
+		if (renderer) {
+			storeState.redrawStamp(renderer)
+		}
 	}
 
 	onPointerUp(_event: NormalizedPointerEvent): void {

@@ -33,7 +33,11 @@ export interface EditorState {
 	setSelectedStampId: ReturnType<typeof useStampStore>['setSelectedStampId']
 	imageHandle: ReturnType<typeof useStampStore>['imageHandle']
 	setImageHandle: ReturnType<typeof useStampStore>['setImageHandle']
-	redrawStamp: () => void
+	latticeMesh: ReturnType<typeof useStampStore>['latticeMesh']
+	setLatticeMesh: ReturnType<typeof useStampStore>['setLatticeMesh']
+	latticeRenderer: ReturnType<typeof useStampStore>['latticeRenderer']
+	setLatticeRenderer: ReturnType<typeof useStampStore>['setLatticeRenderer']
+	redrawStamp: (renderer: THREE.WebGLRenderer | null) => void
 	isMoveMode: ReturnType<typeof useStampStore>['isMoveMode']
 	setIsMoveMode: ReturnType<typeof useStampStore>['setIsMoveMode']
 
@@ -83,9 +87,12 @@ function buildEditorState(): EditorState {
 		setSelectedStampId: stampState.setSelectedStampId,
 		imageHandle: stampState.imageHandle,
 		setImageHandle: stampState.setImageHandle,
-		redrawStamp: () => {
-			const currentTextureState = useTextureStore.getState()
-			stampState.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
+		latticeMesh: stampState.latticeMesh,
+		setLatticeMesh: stampState.setLatticeMesh,
+		latticeRenderer: stampState.latticeRenderer,
+		setLatticeRenderer: stampState.setLatticeRenderer,
+		redrawStamp: (renderer) => {
+			stampState.redrawStamp(renderer)
 		},
 		isMoveMode: stampState.isMoveMode,
 		setIsMoveMode: stampState.setIsMoveMode,
@@ -135,9 +142,12 @@ export const useEditorStore = (): EditorState => {
 		setSelectedStampId: stampStore.setSelectedStampId,
 		imageHandle: stampStore.imageHandle,
 		setImageHandle: stampStore.setImageHandle,
-		redrawStamp: () => {
-			const currentTextureState = useTextureStore.getState()
-			stampStore.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
+		latticeMesh: stampStore.latticeMesh,
+		setLatticeMesh: stampStore.setLatticeMesh,
+		latticeRenderer: stampStore.latticeRenderer,
+		setLatticeRenderer: stampStore.setLatticeRenderer,
+		redrawStamp: (renderer) => {
+			stampStore.redrawStamp(renderer)
 		},
 		isMoveMode: stampStore.isMoveMode,
 		setIsMoveMode: stampStore.setIsMoveMode,

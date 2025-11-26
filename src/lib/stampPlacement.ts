@@ -1,9 +1,11 @@
 import * as THREE from 'three'
 import { calculateTangentVectors } from './utils'
-import { CanvasRenderer } from '@/services/CanvasRenderer'
 import { createImageHandle } from './handle'
 import type { EditorState } from '@/store/composedStore'
 import { disposeObject3D } from './utils/resourceDisposal'
+import { createLatticeMesh } from './lattice/LatticeMesh'
+import { LatticeRenderer } from '@/services/LatticeRenderer'
+import { useEditorStore } from '@/store/editorStore'
 
 export function placeStampAtIntersection(
 	intersection: THREE.Intersection,
@@ -36,7 +38,8 @@ export function placeStampAtIntersection(
 	const faceIndex = intersection.faceIndex ?? 0
 	const { uAxis, vAxis } = calculateTangentVectors(tube.geometry, faceIndex, normal)
 
-	const copySize = canvas.width * 0.4
+	// Size in UV units (0.4 = 40% of UV space)
+	const copySize = 0.4
 
 	const stampInfo = {
 		uv,
@@ -50,19 +53,51 @@ export function placeStampAtIntersection(
 
 	storeState.setStampInfo(stampInfo)
 
-	// Draw stamp using CanvasRenderer
-	CanvasRenderer.drawStamp(canvas, sourceImage, uv, copySize, copySize, 0)
+	// Create lattice mesh
+	const latticeMesh = createLatticeMesh(stampInfo, sourceImage)
+	storeState.setLatticeMesh(latticeMesh)
 
-	// Force texture update
-	const texture = storeState.texture
-	if (texture) {
-		CanvasRenderer.updateTexture(texture)
+	// Create lattice renderer if it doesn't exist
+	if (!storeState.latticeRenderer) {
+		const latticeRenderer = new LatticeRenderer(canvas.width)
+		storeState.setLatticeRenderer(latticeRenderer)
+	}
+
+	// Render lattice to texture and apply to tube
+	// Get latest renderer from store (might not be in storeState parameter)
+	const latestState = useEditorStore.getState()
+	const renderer = latestState.renderer || storeState.renderer
+	const latticeRenderer = latestState.latticeRenderer || storeState.latticeRenderer
+	
+	if (renderer && latticeRenderer) {
+		const newTexture = latticeRenderer.renderLatticeToTexture(latticeMesh, renderer)
 		
-		// Force material update if it's using the texture
+		// Apply texture to tube mesh
 		const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
-		if (tubeMaterial && tubeMaterial.map === texture) {
+		if (tubeMaterial) {
+			// Dispose old texture if it was a render target texture
+			if (tubeMaterial.map && tubeMaterial.map !== storeState.texture) {
+				tubeMaterial.map.dispose()
+			}
+			tubeMaterial.map = newTexture
 			tubeMaterial.needsUpdate = true
 		}
+	} else {
+		// Try to render on next frame if renderer becomes available
+		requestAnimationFrame(() => {
+			const retryState = useEditorStore.getState()
+			if (retryState.renderer && retryState.latticeRenderer && retryState.latticeMesh) {
+				const retryTexture = retryState.latticeRenderer.renderLatticeToTexture(retryState.latticeMesh, retryState.renderer)
+				const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
+				if (tubeMaterial) {
+					if (tubeMaterial.map && tubeMaterial.map !== retryState.texture) {
+						tubeMaterial.map.dispose()
+					}
+					tubeMaterial.map = retryTexture
+					tubeMaterial.needsUpdate = true
+				}
+			}
+		})
 	}
 
 	storeState.setSelectedObject(tube)
