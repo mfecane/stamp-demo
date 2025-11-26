@@ -5,6 +5,7 @@ import { useEditorStore } from '@/store/editorStore'
 import { InteractionManager } from '@/interaction/InteractionManager'
 import { normalizePointerEvent } from '@/interaction/utils/eventNormalization'
 import { SceneInitializer } from '@/services/SceneInitializer'
+import { StampContextMenu } from './StampContextMenu'
 
 interface ThreeSceneProps {
 	imageUrl: string | null
@@ -62,6 +63,24 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 		store.setStampInfo(null)
 		store.setWidget(null)
 		store.setSelectedObject(null)
+		store.setSelectedStampId(null)
+		
+		// Remove existing handle if any
+		const existingHandle = store.imageHandle
+		if (existingHandle && store.scene) {
+			store.scene.remove(existingHandle)
+			existingHandle.traverse((child: THREE.Object3D) => {
+				if (child instanceof THREE.Mesh) {
+					child.geometry.dispose()
+					if (Array.isArray(child.material)) {
+						child.material.forEach((mat) => mat.dispose())
+					} else {
+						child.material.dispose()
+					}
+				}
+			})
+		}
+		store.setImageHandle(null)
 
 		// Initialize store with scene objects
 		store.setCamera(camera)
@@ -69,6 +88,7 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 		store.setTube(tube)
 		store.setCanvas(canvas)
 		store.setTexture(texture)
+		store.setRenderer(renderer)
 
 		// Initialize interaction manager
 		const raycaster = new THREE.Raycaster()
@@ -153,6 +173,19 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 				})
 				scene.remove(store.widget)
 			}
+			if (store.imageHandle) {
+				store.imageHandle.traverse((child: THREE.Object3D) => {
+					if (child instanceof THREE.Mesh) {
+						child.geometry.dispose()
+						if (Array.isArray(child.material)) {
+							child.material.forEach((mat) => mat.dispose())
+						} else {
+							child.material.dispose()
+						}
+					}
+				})
+				scene.remove(store.imageHandle)
+			}
 			if (container && renderer.domElement) {
 				container.removeChild(renderer.domElement)
 			}
@@ -229,7 +262,11 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 		}
 	}, [isImageReady])
 
-	return <div ref={mountRef} className="w-full h-full relative" style={{ minWidth: 0, minHeight: 0 }} />
+	return (
+		<div ref={mountRef} className="w-full h-full relative" style={{ minWidth: 0, minHeight: 0 }}>
+			<StampContextMenu />
+		</div>
+	)
 }
 
 export default ThreeScene

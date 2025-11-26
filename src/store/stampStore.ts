@@ -14,12 +14,20 @@ export interface StampInfo {
 export interface StampState {
 	stampInfo: StampInfo | null
 	setStampInfo: (info: StampInfo | null) => void
+	selectedStampId: string | null
+	setSelectedStampId: (id: string | null) => void
+	imageHandle: THREE.Group | null
+	setImageHandle: (handle: THREE.Group | null) => void
 	redrawStamp: (canvas: HTMLCanvasElement | null, sourceImage: HTMLImageElement | null, texture: THREE.CanvasTexture | null) => void
 }
 
 export const useStampStore = create<StampState>((set, get) => ({
 	stampInfo: null,
 	setStampInfo: (info) => set({ stampInfo: info }),
+	selectedStampId: null,
+	setSelectedStampId: (id) => set({ selectedStampId: id }),
+	imageHandle: null,
+	setImageHandle: (handle) => set({ imageHandle: handle }),
 	redrawStamp: (canvas, sourceImage, texture) => {
 		const { stampInfo } = get()
 		if (!stampInfo || !canvas || !sourceImage) return

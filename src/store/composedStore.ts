@@ -16,6 +16,8 @@ export interface EditorState {
 	setTube: ReturnType<typeof useSceneStore>['setTube']
 	scene: ReturnType<typeof useSceneStore>['scene']
 	setScene: ReturnType<typeof useSceneStore>['setScene']
+	renderer: ReturnType<typeof useSceneStore>['renderer']
+	setRenderer: ReturnType<typeof useSceneStore>['setRenderer']
 
 	// Widget
 	widget: ReturnType<typeof useWidgetStore>['widget']
@@ -25,6 +27,10 @@ export interface EditorState {
 	// Stamp
 	stampInfo: ReturnType<typeof useStampStore>['stampInfo']
 	setStampInfo: ReturnType<typeof useStampStore>['setStampInfo']
+	selectedStampId: ReturnType<typeof useStampStore>['selectedStampId']
+	setSelectedStampId: ReturnType<typeof useStampStore>['setSelectedStampId']
+	imageHandle: ReturnType<typeof useStampStore>['imageHandle']
+	setImageHandle: ReturnType<typeof useStampStore>['setImageHandle']
 	redrawStamp: () => void
 
 	// Texture
@@ -58,6 +64,8 @@ export const useEditorStore = (): EditorState => {
 		setTube: sceneStore.setTube,
 		scene: sceneStore.scene,
 		setScene: sceneStore.setScene,
+		renderer: sceneStore.renderer,
+		setRenderer: sceneStore.setRenderer,
 
 		// Widget
 		widget: widgetStore.widget,
@@ -67,6 +75,10 @@ export const useEditorStore = (): EditorState => {
 		// Stamp
 		stampInfo: stampStore.stampInfo,
 		setStampInfo: stampStore.setStampInfo,
+		selectedStampId: stampStore.selectedStampId,
+		setSelectedStampId: stampStore.setSelectedStampId,
+		imageHandle: stampStore.imageHandle,
+		setImageHandle: stampStore.setImageHandle,
 		redrawStamp: () => {
 			const currentTextureState = useTextureStore.getState()
 			stampStore.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
@@ -98,11 +110,17 @@ export const useEditorStore = (): EditorState => {
 				setTube: sceneState.setTube,
 				scene: sceneState.scene,
 				setScene: sceneState.setScene,
+				renderer: sceneState.renderer,
+				setRenderer: sceneState.setRenderer,
 				widget: widgetState.widget,
 				setWidget: widgetState.setWidget,
 				createWidget: widgetState.createWidget,
 				stampInfo: stampState.stampInfo,
 				setStampInfo: stampState.setStampInfo,
+				selectedStampId: stampState.selectedStampId,
+				setSelectedStampId: stampState.setSelectedStampId,
+				imageHandle: stampState.imageHandle,
+				setImageHandle: stampState.setImageHandle,
 				redrawStamp: () => {
 					const currentTextureState = useTextureStore.getState()
 					stampState.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)
@@ -137,11 +155,17 @@ useEditorStore.getState = (): EditorState => {
 		setTube: sceneState.setTube,
 		scene: sceneState.scene,
 		setScene: sceneState.setScene,
+		renderer: sceneState.renderer,
+		setRenderer: sceneState.setRenderer,
 		widget: widgetState.widget,
 		setWidget: widgetState.setWidget,
 		createWidget: widgetState.createWidget,
 		stampInfo: stampState.stampInfo,
 		setStampInfo: stampState.setStampInfo,
+		selectedStampId: stampState.selectedStampId,
+		setSelectedStampId: stampState.setSelectedStampId,
+		imageHandle: stampState.imageHandle,
+		setImageHandle: stampState.setImageHandle,
 		redrawStamp: () => {
 			const currentTextureState = useTextureStore.getState()
 			stampState.redrawStamp(currentTextureState.canvas, currentTextureState.sourceImage, currentTextureState.texture)

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 
 export interface HitResult {
-	type: 'resize-handle' | 'widget-body' | 'selectable-object' | 'empty'
+	type: 'resize-handle' | 'widget-body' | 'image-handle' | 'selectable-object' | 'empty'
 	object?: THREE.Object3D
 	intersection?: THREE.Intersection
 	handleType?: 'x' | 'y' | 'center'
@@ -10,7 +10,8 @@ export interface HitResult {
 export function performHitTest(
 	raycaster: THREE.Raycaster,
 	widget: THREE.Group | null,
-	tube: THREE.Mesh | null
+	tube: THREE.Mesh | null,
+	imageHandle: THREE.Group | null = null
 ): HitResult {
 	if (!widget && !tube) {
 		return { type: 'empty' }
@@ -78,7 +79,29 @@ export function performHitTest(
 		}
 	}
 
-	// Priority 3: Selectable object (tube mesh)
+	// Priority 3: Image handle
+	if (imageHandle) {
+		imageHandle.updateMatrixWorld(true)
+		
+		// Check only colliders (hit test objects)
+		const handleColliders: THREE.Object3D[] = []
+		imageHandle.traverse((child) => {
+			if (child.userData.isHitTest && child.userData.isImageHandle && child instanceof THREE.Mesh) {
+				handleColliders.push(child)
+			}
+		})
+
+		const handleIntersects = raycaster.intersectObjects(handleColliders, false)
+		if (handleIntersects.length > 0) {
+			return {
+				type: 'image-handle',
+				object: handleIntersects[0].object,
+				intersection: handleIntersects[0],
+			}
+		}
+	}
+
+	// Priority 4: Selectable object (tube mesh)
 	if (tube) {
 		const tubeIntersects = raycaster.intersectObject(tube)
 		if (tubeIntersects.length > 0) {
@@ -90,7 +113,7 @@ export function performHitTest(
 		}
 	}
 
-	// Priority 4: Empty space
+	// Priority 5: Empty space
 	return { type: 'empty' }
 }
 

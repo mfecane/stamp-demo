@@ -66,3 +66,17 @@ export function calculateTangentVectors(
 	return { uAxis, vAxis }
 }
 
+export function worldToScreen(
+	worldPosition: THREE.Vector3,
+	camera: THREE.PerspectiveCamera,
+	renderer: THREE.WebGLRenderer
+): { x: number; y: number } {
+	const vector = worldPosition.clone()
+	vector.project(camera)
+
+	const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth
+	const y = (vector.y * -0.5 + 0.5) * renderer.domElement.clientHeight
+
+	return { x, y }
+}
+

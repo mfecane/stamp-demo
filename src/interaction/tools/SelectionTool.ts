@@ -3,6 +3,7 @@ import { Tool, NormalizedPointerEvent } from '../Tool'
 import { performHitTest } from '../hitTesting'
 import { calculateTangentVectors } from '@/lib/utils'
 import { CanvasRenderer } from '@/services/CanvasRenderer'
+import { createImageHandle } from '@/lib/handle'
 
 export class SelectionTool extends Tool {
 	onPointerDown(event: NormalizedPointerEvent): void {
@@ -23,15 +24,20 @@ export class SelectionTool extends Tool {
 		}
 
 		// Perform hit test
-		const hitResult = performHitTest(this.context.raycaster, widget, tube)
+		const hitResult = performHitTest(this.context.raycaster, widget, tube, storeState.imageHandle)
 
-		// If clicked on widget, don't place new stamp
-		if (hitResult.type === 'resize-handle' || hitResult.type === 'widget-body') {
+		// If clicked on widget or image handle, don't place new stamp
+		if (hitResult.type === 'resize-handle' || hitResult.type === 'widget-body' || hitResult.type === 'image-handle') {
 			return
 		}
 
-		// If clicked on tube, place stamp
+		// If clicked on tube, place stamp (only if no stamp exists yet)
 		if (hitResult.type === 'selectable-object' && hitResult.intersection) {
+			// Don't place a new stamp if one already exists
+			if (storeState.stampInfo) {
+				return
+			}
+
 			const intersection = hitResult.intersection
 			const point = intersection.point
 			const normal = intersection.normal
@@ -74,9 +80,28 @@ export class SelectionTool extends Tool {
 					}
 				}
 
-				// Create widget at intersection point
-				storeState.createWidget(point, normal, uAxis, vAxis, storeState.scene!)
 				storeState.setSelectedObject(tube)
+
+				// Create image handle at intersection point
+				const existingHandle = storeState.imageHandle
+				if (existingHandle && storeState.scene) {
+					storeState.scene.remove(existingHandle)
+					existingHandle.traverse((child: THREE.Object3D) => {
+						if (child instanceof THREE.Mesh) {
+							child.geometry.dispose()
+							if (Array.isArray(child.material)) {
+								child.material.forEach((mat) => mat.dispose())
+							} else {
+								child.material.dispose()
+							}
+						}
+					})
+				}
+				const handle = createImageHandle(point, storeState.scene!)
+				storeState.setImageHandle(handle)
+				
+				// Automatically select the stamp after placement
+				storeState.setSelectedStampId('stamp-1')
 			}
 		}
 	}

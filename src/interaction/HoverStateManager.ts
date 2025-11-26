@@ -1,12 +1,15 @@
 import * as THREE from 'three'
 import { updateWidgetHoverState } from '@/lib/widget'
+import { updateHandleHoverState } from '@/lib/handle'
 
 export class HoverStateManager {
 	private hoveredAxis: 'x' | 'y' | 'center' | null = null
+	private hoveredImageHandle: boolean = false
 
 	updateHoverState(
 		raycaster: THREE.Raycaster,
-		widget: THREE.Group | null
+		widget: THREE.Group | null,
+		imageHandle: THREE.Group | null = null
 	): void {
 		if (!widget) {
 			if (this.hoveredAxis !== null) {
@@ -60,6 +63,28 @@ export class HoverStateManager {
 			this.hoveredAxis = newHoveredAxis
 			updateWidgetHoverState(widget, this.hoveredAxis)
 		}
+
+		// Check image handle hover
+		let isImageHandleHovered = false
+		if (imageHandle) {
+			imageHandle.updateMatrixWorld(true)
+			
+			const handleColliders: THREE.Object3D[] = []
+			imageHandle.traverse((child) => {
+				if (child.userData.isHitTest && child.userData.isImageHandle && child instanceof THREE.Mesh) {
+					handleColliders.push(child)
+				}
+			})
+
+			const handleIntersects = raycaster.intersectObjects(handleColliders, false)
+			isImageHandleHovered = handleIntersects.length > 0
+		}
+
+		// Update image handle hover state if it changed
+		if (isImageHandleHovered !== this.hoveredImageHandle) {
+			this.hoveredImageHandle = isImageHandleHovered
+			updateHandleHoverState(imageHandle, this.hoveredImageHandle)
+		}
 	}
 
 	getHoveredAxis(): 'x' | 'y' | 'center' | null {
@@ -68,6 +93,7 @@ export class HoverStateManager {
 
 	reset(): void {
 		this.hoveredAxis = null
+		this.hoveredImageHandle = false
 	}
 }
 

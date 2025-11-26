@@ -12,6 +12,8 @@ export interface SceneState {
 	setTube: (tube: THREE.Mesh | null) => void
 	scene: THREE.Scene | null
 	setScene: (scene: THREE.Scene | null) => void
+	renderer: THREE.WebGLRenderer | null
+	setRenderer: (renderer: THREE.WebGLRenderer | null) => void
 }
 
 export const useSceneStore = create<SceneState>((set) => ({
@@ -25,5 +27,7 @@ export const useSceneStore = create<SceneState>((set) => ({
 	setTube: (tube) => set({ tube }),
 	scene: null,
 	setScene: (scene) => set({ scene }),
+	renderer: null,
+	setRenderer: (renderer) => set({ renderer }),
 }))
 

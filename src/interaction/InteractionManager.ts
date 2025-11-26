@@ -32,12 +32,31 @@ export class InteractionManager {
 		// Update mouse position for hit testing
 		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
 
-		// Perform hit test with priority: resize handle → widget body → selectable object → empty
+		// Perform hit test with priority: resize handle → widget body → image-handle → selectable object → empty
 		this.hitResult = performHitTest(
 			this.context.raycaster,
 			storeState.widget,
-			storeState.tube
+			storeState.tube,
+			storeState.imageHandle
 		)
+
+		// Handle image-handle selection
+		if (this.hitResult.type === 'image-handle') {
+			storeState.setSelectedStampId('stamp-1') // For now, single stamp ID
+			return
+		}
+
+		// Handle selection/deselection
+		if (this.hitResult.type !== 'resize-handle' && this.hitResult.type !== 'widget-body') {
+			// Deselect stamp when clicking on empty space
+			if (this.hitResult.type === 'empty' && storeState.selectedStampId) {
+				storeState.setSelectedStampId(null)
+			}
+			// Reselect stamp when clicking on mesh if a stamp exists
+			else if (this.hitResult.type === 'selectable-object' && storeState.stampInfo) {
+				storeState.setSelectedStampId('stamp-1')
+			}
+		}
 
 		// Activate tool based on hit result using factory
 		const tool = this.toolFactory.createTool(this.hitResult, this.context, storeState)
@@ -64,7 +83,7 @@ export class InteractionManager {
 		normalizeMousePosition(event, this.context.renderer, camera, this.context.raycaster, this.context.mouse)
 
 		// Update hover state
-		this.hoverStateManager.updateHoverState(this.context.raycaster, storeState.widget)
+		this.hoverStateManager.updateHoverState(this.context.raycaster, storeState.widget, storeState.imageHandle)
 
 		if (this.activeTool) {
 			this.activeTool.onPointerMove(event)
