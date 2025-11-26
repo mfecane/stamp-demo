@@ -8,6 +8,7 @@ import { MoveToolStrategy } from './tools/strategies/MoveToolStrategy'
 import { DragToolStrategy } from './tools/strategies/DragToolStrategy'
 import { SelectionToolStrategy } from './tools/strategies/SelectionToolStrategy'
 import { OrbitToolStrategy } from './tools/strategies/OrbitToolStrategy'
+import { BrushToolStrategy } from './tools/strategies/BrushToolStrategy'
 
 export interface IToolFactory {
 	createTool(hitResult: HitResult, context: ToolContext, storeState: EditorState): Tool | null
@@ -28,6 +29,7 @@ export class ToolFactory implements IToolFactory {
 			new RotateToolStrategy(),
 			new MoveToolStrategy(),
 			new DragToolStrategy(),
+			new BrushToolStrategy(), // Check brush mode before selection/orbit
 			new SelectionToolStrategy(),
 			new OrbitToolStrategy(), // Most general, should be last
 		]

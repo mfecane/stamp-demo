@@ -6,7 +6,7 @@ import { ToolFactory, IToolFactory } from './ToolFactory'
 import { normalizeMousePosition } from './utils/mousePosition'
 import { updateCameraMatrix } from './utils/cameraUpdates'
 
-export type InteractionState = 'idle' | 'orbit' | 'drag' | 'resize' | 'move' | 'rotate'
+export type InteractionState = 'idle' | 'orbit' | 'drag' | 'resize' | 'move' | 'rotate' | 'brush'
 
 export class InteractionManager {
 	private state: InteractionState = 'idle'
@@ -49,8 +49,8 @@ export class InteractionManager {
 
 		// Handle selection/deselection
 		if (this.hitResult.type !== 'resize-handle' && this.hitResult.type !== 'widget-body' && this.hitResult.type !== 'rotate-handle' && this.hitResult.type !== 'move-handle') {
-			// Deselect stamp when clicking on empty space (but not if widget is active)
-			if (this.hitResult.type === 'empty' && storeState.selectedStampId && !storeState.widget) {
+			// Deselect stamp when clicking on empty space (but not if widget is active or brush is active)
+			if (this.hitResult.type === 'empty' && storeState.selectedStampId && !storeState.widget && !storeState.isBrushMode) {
 				storeState.setSelectedStampId(null)
 			}
 			// Reselect stamp when clicking on mesh if a stamp exists

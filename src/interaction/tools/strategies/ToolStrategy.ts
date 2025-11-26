@@ -2,7 +2,7 @@ import { Tool, ToolContext } from '../../Tool'
 import type { HitResult } from '@/types/hitResult'
 import type { EditorState } from '@/store/composedStore'
 
-export type InteractionState = 'idle' | 'orbit' | 'drag' | 'resize' | 'move' | 'rotate'
+export type InteractionState = 'idle' | 'orbit' | 'drag' | 'resize' | 'move' | 'rotate' | 'brush'
 
 /**
  * Strategy interface for tool creation and state determination.

@@ -45,8 +45,6 @@ export class LatticeRenderer {
 			return this.getWhiteTexture()
 		}
 
-		console.log('latticeMesh.position', latticeMesh.position)
-
 		// Clone mesh to avoid modifying original
 		const meshClone = latticeMesh.clone()
 		meshClone.updateMatrixWorld(true)

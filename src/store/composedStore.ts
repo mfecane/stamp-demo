@@ -40,6 +40,12 @@ export interface EditorState {
 	redrawStamp: (renderer: THREE.WebGLRenderer | null) => void
 	isMoveMode: ReturnType<typeof useStampStore>['isMoveMode']
 	setIsMoveMode: ReturnType<typeof useStampStore>['setIsMoveMode']
+	isBrushMode: ReturnType<typeof useStampStore>['isBrushMode']
+	setIsBrushMode: ReturnType<typeof useStampStore>['setIsBrushMode']
+	brushStrokes: ReturnType<typeof useStampStore>['brushStrokes']
+	addBrushStrokePoint: ReturnType<typeof useStampStore>['addBrushStrokePoint']
+	startNewBrushStroke: ReturnType<typeof useStampStore>['startNewBrushStroke']
+	clearBrushStrokes: ReturnType<typeof useStampStore>['clearBrushStrokes']
 
 	// Texture
 	canvas: ReturnType<typeof useTextureStore>['canvas']
@@ -96,6 +102,12 @@ function buildEditorState(): EditorState {
 		},
 		isMoveMode: stampState.isMoveMode,
 		setIsMoveMode: stampState.setIsMoveMode,
+		isBrushMode: stampState.isBrushMode,
+		setIsBrushMode: stampState.setIsBrushMode,
+		brushStrokes: stampState.brushStrokes,
+		addBrushStrokePoint: stampState.addBrushStrokePoint,
+		startNewBrushStroke: stampState.startNewBrushStroke,
+		clearBrushStrokes: stampState.clearBrushStrokes,
 		canvas: textureState.canvas,
 		setCanvas: textureState.setCanvas,
 		texture: textureState.texture,
@@ -151,6 +163,12 @@ export const useEditorStore = (): EditorState => {
 		},
 		isMoveMode: stampStore.isMoveMode,
 		setIsMoveMode: stampStore.setIsMoveMode,
+		isBrushMode: stampStore.isBrushMode,
+		setIsBrushMode: stampStore.setIsBrushMode,
+		brushStrokes: stampStore.brushStrokes,
+		addBrushStrokePoint: stampStore.addBrushStrokePoint,
+		startNewBrushStroke: stampStore.startNewBrushStroke,
+		clearBrushStrokes: stampStore.clearBrushStrokes,
 
 		// Texture
 		canvas: textureStore.canvas,

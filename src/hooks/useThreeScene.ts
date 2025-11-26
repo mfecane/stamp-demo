@@ -50,6 +50,11 @@ export function useThreeScene(mountRef: React.RefObject<HTMLDivElement>): SceneR
 		store.setWidget(null)
 		store.setSelectedObject(null)
 		store.setSelectedStampId(null)
+		// Exit brush mode when clearing selection
+		if (store.isBrushMode) {
+			store.setIsBrushMode(false)
+			store.clearBrushStrokes()
+		}
 		
 		const existingHandle = store.imageHandle
 		if (existingHandle && store.scene) {

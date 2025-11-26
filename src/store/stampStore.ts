@@ -28,6 +28,12 @@ export interface StampState {
 	redrawStamp: (renderer: THREE.WebGLRenderer | null) => void
 	isMoveMode: boolean
 	setIsMoveMode: (enabled: boolean) => void
+	isBrushMode: boolean
+	setIsBrushMode: (enabled: boolean) => void
+	brushStrokes: Array<{ points: Array<{ x: number; y: number }> }>
+	addBrushStrokePoint: (point: { x: number; y: number }) => void
+	startNewBrushStroke: () => void
+	clearBrushStrokes: () => void
 }
 
 export const useStampStore = create<StampState>((set, get) => ({
@@ -53,5 +59,24 @@ export const useStampStore = create<StampState>((set, get) => ({
 	},
 	isMoveMode: false,
 	setIsMoveMode: (enabled) => set({ isMoveMode: enabled }),
+	isBrushMode: false,
+	setIsBrushMode: (enabled) => set({ isBrushMode: enabled }),
+	brushStrokes: [],
+	addBrushStrokePoint: (point) => {
+		const state = get()
+		if (state.brushStrokes.length === 0) {
+			state.startNewBrushStroke()
+		}
+		const strokes = [...state.brushStrokes]
+		if (strokes.length > 0) {
+			strokes[strokes.length - 1].points.push(point)
+			set({ brushStrokes: strokes })
+		}
+	},
+	startNewBrushStroke: () => {
+		const state = get()
+		set({ brushStrokes: [...state.brushStrokes, { points: [] }] })
+	},
+	clearBrushStrokes: () => set({ brushStrokes: [] }),
 }))
 

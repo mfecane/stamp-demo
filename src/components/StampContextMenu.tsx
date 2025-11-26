@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import * as THREE from 'three'
-import { Maximize2, Trash2, X, Move, RotateCw, Check } from 'lucide-react'
+import { Maximize2, Trash2, Move, RotateCw, Check, Paintbrush, RotateCcw } from 'lucide-react'
 import { useEditorStore } from '@/store/editorStore'
 import { worldToScreen } from '@/lib/utils'
 import { CanvasRenderer } from '@/services/CanvasRenderer'
 import { disposeObject3D } from '@/lib/utils/resourceDisposal'
+import { resetLatticeMeshVertices } from '@/lib/lattice/LatticeMesh'
 import {
 	Tooltip,
 	TooltipContent,
@@ -142,6 +143,12 @@ export function StampContextMenu() {
 		// Clear stamp info and selection
 		setStampInfo(null)
 		setSelectedStampId(null)
+		
+		// Exit brush mode when deleting stamp
+		if (store.isBrushMode) {
+			store.setIsBrushMode(false)
+			store.clearBrushStrokes()
+		}
 	}
 
 	const handleExitWidget = () => {
@@ -162,6 +169,41 @@ export function StampContextMenu() {
 		const stampInfo = store.stampInfo
 
 		store.createWidget('move', worldPosition, stampInfo.normal, stampInfo.uAxis, stampInfo.vAxis, scene, stampInfo.rotation || 0)
+	}
+
+	const handleBrush = () => {
+		// Activate brush mode
+		store.setIsBrushMode(true)
+	}
+
+	const handleExitBrush = () => {
+		// Deactivate brush mode and clear brush strokes
+		store.setIsBrushMode(false)
+		store.clearBrushStrokes()
+	}
+
+	const handleResetLattice = () => {
+		const latticeMesh = store.latticeMesh
+		const renderer = store.renderer
+		const tube = store.tube
+
+		if (!latticeMesh || !renderer || !tube) return
+
+		// Reset lattice vertices
+		resetLatticeMeshVertices(latticeMesh)
+
+		// Redraw stamp
+		if (store.latticeRenderer) {
+			const newTexture = store.latticeRenderer.renderLatticeToTexture(latticeMesh, renderer)
+			const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
+			if (tubeMaterial) {
+				if (tubeMaterial.map && tubeMaterial.map !== store.texture) {
+					tubeMaterial.map.dispose()
+				}
+				tubeMaterial.map = newTexture
+				tubeMaterial.needsUpdate = true
+			}
+		}
 	}
 
 	if (!selectedStampId || !position) {
@@ -191,6 +233,49 @@ export function StampContextMenu() {
 						</TooltipTrigger>
 						<TooltipContent>
 							<p>Exit widget</p>
+						</TooltipContent>
+					</Tooltip>
+				</div>
+			</TooltipProvider>
+		)
+	}
+
+	// Show checkmark and reset lattice buttons when brush mode is active
+	if (store.isBrushMode) {
+		return (
+			<TooltipProvider>
+				<div
+					className="absolute z-50 bg-card border border-border rounded-md shadow-lg p-1 flex gap-1"
+					style={{
+						left: `${position.x}px`,
+						top: `${position.y}px`,
+						transform: 'translateX(-50%)',
+					}}
+				>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								onClick={handleExitBrush}
+								className="p-2 hover:bg-accent rounded transition-colors"
+							>
+								<Check className="w-4 h-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent>
+							<p>Exit brush</p>
+						</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								onClick={handleResetLattice}
+								className="p-2 hover:bg-accent rounded transition-colors"
+							>
+								<RotateCcw className="w-4 h-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent>
+							<p>Reset Lattice</p>
 						</TooltipContent>
 					</Tooltip>
 				</div>
@@ -246,6 +331,19 @@ export function StampContextMenu() {
 					</TooltipTrigger>
 					<TooltipContent>
 						<p>Rotate</p>
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							onClick={handleBrush}
+							className="p-2 hover:bg-accent rounded transition-colors"
+						>
+							<Paintbrush className="w-4 h-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>Brush</p>
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>
