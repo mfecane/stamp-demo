@@ -5,9 +5,11 @@ interface GuiPanelProps {
 }
 
 function GuiPanel({ onImageSelect, isImageActive, isStampPlaced }: GuiPanelProps) {
+  const imagePath = `${import.meta.env.BASE_URL}assets/stamp-image.jpg`
+  
   const handleImageClick = () => {
     if (isStampPlaced) return
-    onImageSelect('/assets/stamp-image.jpg')
+    onImageSelect(imagePath)
   }
 
   const isDisabled = isStampPlaced
@@ -33,7 +35,7 @@ function GuiPanel({ onImageSelect, isImageActive, isStampPlaced }: GuiPanelProps
               }`}
             >
               <img
-                src="/assets/stamp-image.jpg"
+                src={imagePath}
                 alt="Stamp image"
                 className="w-full h-full object-contain"
               />

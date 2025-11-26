@@ -133,7 +133,7 @@ export const useEditorStore = (): EditorState => {
 				setSourceImage: textureState.setSourceImage,
 				isImageReady: textureState.isImageReady,
 				setIsImageReady: textureState.setIsImageReady,
-				getState: () => useEditorStore().getState(),
+				getState: () => useEditorStore.getState(),
 			}
 		},
 	}
