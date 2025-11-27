@@ -9,7 +9,7 @@ import { useWidgetPositionSync } from '@/hooks/useWidgetPositionSync'
 import { useSceneResize } from '@/hooks/useSceneResize'
 import { useSceneCursor } from '@/hooks/useSceneCursor'
 import { useImageHandleVisibility } from '@/hooks/useImageHandleVisibility'
-import { DebugTextureOverlay } from './DebugTextureOverlay'
+import { TextureOverlay } from './TextureOverlay'
 import { useLatticeRendering } from '@/hooks/useLatticeRendering'
 
 interface ThreeSceneProps {
@@ -46,10 +46,13 @@ function ThreeScene({ imageUrl }: ThreeSceneProps) {
 	// Sync widget and handle positions
 	useWidgetPositionSync()
 
+	// Render lattice mesh to texture in real-time
+	useLatticeRendering()
+
 	return (
 		<div ref={mountRef} className="w-full h-full relative" style={{ minWidth: 0, minHeight: 0 }}>
 			<StampContextMenu />
-			<DebugTextureOverlay />
+			<TextureOverlay />
 		</div>
 	)
 }

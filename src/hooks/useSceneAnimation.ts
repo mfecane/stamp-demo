@@ -34,39 +34,32 @@ export function useSceneAnimation(
 		const animate = () => {
 			animationId = requestAnimationFrame(animate)
 			controlsInstance.update()
-			
+
 			if (skyboxInstance) {
 				skyboxInstance.quaternion.copy(camera.quaternion)
 			}
 
-			// Check if lattice mesh needs re-rendering
+			// Check if lattice mesh needs re-rendering (transform changes only)
+			// Vertex changes are handled by useLatticeRendering hook
 			const latticeMesh = store.latticeMesh
 			const latticeRenderer = store.latticeRenderer
 			const tube = store.tube
-			
+
 			if (latticeMesh && latticeRenderer && tube) {
-				const geometry = latticeMesh.geometry as THREE.PlaneGeometry
-				const positions = geometry.attributes.position
-				
-				// Check if mesh changed (transform or vertices)
+				// Check if mesh transform changed (position, scale, rotation)
+				// Vertex deformations are handled separately by useLatticeRendering
 				const currentPosition = latticeMesh.position.clone()
 				const currentScale = latticeMesh.scale.clone()
 				const currentRotation = latticeMesh.rotation.z
-				
-				// Create a simple hash of vertex positions to detect changes
-				const positionsArray = positions.array
-				const verticesHash = `${positionsArray[0]},${positionsArray[1]},${positionsArray[2]},${positionsArray[positionsArray.length - 3]},${positionsArray[positionsArray.length - 2]},${positionsArray[positionsArray.length - 1]}`
-				
+
 				const lastState = lastMeshStateRef.current
-				const hasChanged = !lastState ||
+				const transformChanged = !lastState ||
 					lastState.mesh !== latticeMesh ||
 					!currentPosition.equals(lastState.position) ||
 					!currentScale.equals(lastState.scale) ||
-					currentRotation !== lastState.rotation ||
-					verticesHash !== lastState.verticesHash ||
-					positions.needsUpdate
+					currentRotation !== lastState.rotation
 
-				if (hasChanged) {
+				if (transformChanged) {
 					// Render lattice mesh to texture
 					const texture = latticeRenderer.renderLatticeToTexture(latticeMesh, rendererInstance)
 					const tubeMaterial = tube.material as THREE.MeshPhysicalMaterial
@@ -78,7 +71,12 @@ export function useSceneAnimation(
 						tubeMaterial.needsUpdate = true
 					}
 
-					// Update last state
+					// Update last state (preserve verticesHash from last state if it exists)
+					const geometry = latticeMesh.geometry as THREE.PlaneGeometry
+					const positions = geometry.attributes.position
+					const positionsArray = positions.array
+					const verticesHash = `${positionsArray[0]},${positionsArray[1]},${positionsArray[2]},${positionsArray[positionsArray.length - 3]},${positionsArray[positionsArray.length - 2]},${positionsArray[positionsArray.length - 1]}`
+
 					lastMeshStateRef.current = {
 						mesh: latticeMesh,
 						position: currentPosition,
@@ -86,15 +84,12 @@ export function useSceneAnimation(
 						rotation: currentRotation,
 						verticesHash,
 					}
-					
-					// Reset needsUpdate flag
-					positions.needsUpdate = false
 				}
 			} else {
 				// Reset last state if mesh is removed
 				lastMeshStateRef.current = null
 			}
-			
+
 			rendererInstance.render(scene, camera)
 		}
 		animate()

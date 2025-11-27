@@ -48,7 +48,7 @@ export class LatticeRenderer {
 		// Clone mesh to avoid modifying original
 		const meshClone = latticeMesh.clone()
 		meshClone.updateMatrixWorld(true)
-		
+
 		// Add mesh clone to scene
 		this.renderScene.clear()
 		this.renderScene.add(meshClone)
@@ -63,8 +63,16 @@ export class LatticeRenderer {
 		mainRenderer.render(this.renderScene, this.camera)
 		mainRenderer.setRenderTarget(null) // Reset to default render target
 
-		// Remove mesh clone from render scene (keep debug plane)
+		// Remove mesh clone from render scene
 		this.renderScene.remove(meshClone)
+
+		// Dispose of mesh clone resources to prevent memory leaks
+		meshClone.geometry.dispose()
+		if (Array.isArray(meshClone.material)) {
+			meshClone.material.forEach((mat) => mat.dispose())
+		} else {
+			meshClone.material.dispose()
+		}
 
 		// Return the render target texture
 		return this.renderTarget.texture
