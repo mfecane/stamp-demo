@@ -6,8 +6,8 @@ import { LatticeDeformationService } from '@/lib/lattice/deformation'
 
 export class BrushTool extends Tool {
 	private isActive = false
-	private previousMousePos = new THREE.Vector2()
-	private previousUV = new THREE.Vector2()
+	private initialMousePos = new THREE.Vector2()
+	private initialUV = new THREE.Vector2()
 	private uAxis: THREE.Vector3 | null = null
 	private vAxis: THREE.Vector3 | null = null
 	private throttledOnPointerMove: (event: NormalizedPointerEvent) => void
@@ -55,16 +55,19 @@ export class BrushTool extends Tool {
 		this.uAxis = tangentVectors.uAxis
 		this.vAxis = tangentVectors.vAxis
 
-		// Store initial mouse position and UV
-		this.previousMousePos.copy(this.context.mouse)
-		this.previousUV = uv.clone()
+		// Store initial mouse position and UV (fixed for the entire stroke)
+		this.initialMousePos.copy(this.context.mouse)
+		this.initialUV = uv.clone()
 
 		// Start new brush stroke (store original UV, will be flipped in debug visualization)
-		storeState.startNewBrushStroke()
-		storeState.addBrushStrokePoint({ x: uv.x, y: uv.y })
+		if (BRUSH_CONSTANTS.SHOW_BRUSH_STROKES) {
+			storeState.startNewBrushStroke()
+			storeState.addBrushStrokePoint({ x: uv.x, y: uv.y })
+		}
 
 		this.isActive = true
 		this.context.controls.enabled = false
+		storeState.setIsBrushActive(true)
 	}
 
 	onPointerMove(event: NormalizedPointerEvent): void {
@@ -97,21 +100,21 @@ export class BrushTool extends Tool {
 		// Get current mouse position
 		const currentMousePos = this.context.mouse.clone()
 
-		// Calculate screen space direction vector
+		// Calculate screen space direction vector from initial position to current position
 		const screenDirection = new THREE.Vector2()
-		screenDirection.subVectors(currentMousePos, this.previousMousePos)
+		screenDirection.subVectors(currentMousePos, this.initialMousePos)
 
 		// Project screen direction onto uAxis and vAxis (projected to screen space)
-		// First, project uAxis and vAxis to screen space
+		// These axes are from the initial position (stored on mouse down)
 		const screenU = new THREE.Vector2()
 		const screenV = new THREE.Vector2()
 
-		// Project uAxis to screen
+		// Project uAxis to screen space (using tangent vector at initial position)
 		const uAxisWorld = this.uAxis.clone().transformDirection(tube.matrixWorld)
 		const uAxisScreen = uAxisWorld.clone().project(camera)
 		screenU.set(uAxisScreen.x * camera.aspect, uAxisScreen.y)
 
-		// Project vAxis to screen
+		// Project vAxis to screen space (using tangent vector at initial position)
 		const vAxisWorld = this.vAxis.clone().transformDirection(tube.matrixWorld)
 		const vAxisScreen = vAxisWorld.clone().project(camera)
 		screenV.set(vAxisScreen.x * camera.aspect, vAxisScreen.y)
@@ -121,39 +124,35 @@ export class BrushTool extends Tool {
 		screenV.normalize()
 
 		// Project screen direction onto screen-space axes
+		// This gives us the direction in tangent space at the initial position
 		const uComponent = screenDirection.dot(screenU)
 		const vComponent = screenDirection.dot(screenV)
 
-		// This gives us the UV direction vector
+		// This gives us the UV direction vector in tangent space at initial position
 		const uvDirection = new THREE.Vector2(uComponent, vComponent)
 		uvDirection.multiplyScalar(BRUSH_CONSTANTS.STRENGTH)
 
-		// Get current intersection point in UV space
-		const tubeIntersects = this.context.raycaster.intersectObject(tube)
-		if (tubeIntersects.length === 0) {
-			throw new Error('Brush tool: no intersection with tube mesh during move')
+		// Deform lattice vertices using initial UV position for distance calculations
+		// Vertices are transformed based on their initial positions, not current positions
+		LatticeDeformationService.deformVertices(latticeMesh, this.initialUV, uvDirection)
+
+		// Optionally get current intersection point for visualization (not required for deformation)
+		if (BRUSH_CONSTANTS.SHOW_BRUSH_STROKES) {
+			const tubeIntersects = this.context.raycaster.intersectObject(tube)
+			if (tubeIntersects.length > 0 && tubeIntersects[0].uv) {
+				const currentUV = tubeIntersects[0].uv.clone()
+				// Add point to brush stroke (for debug visualization only)
+				storeState.addBrushStrokePoint({ x: currentUV.x, y: currentUV.y })
+			}
 		}
-		if (!tubeIntersects[0].uv) {
-			throw new Error('Brush tool: intersection missing UV coordinates during move')
-		}
-
-		const currentUV = tubeIntersects[0].uv.clone()
-
-		// Add point to brush stroke (store original UV, will be flipped in debug visualization)
-		storeState.addBrushStrokePoint({ x: currentUV.x, y: currentUV.y })
-
-		// Deform lattice vertices
-		LatticeDeformationService.deformVertices(latticeMesh, currentUV, uvDirection)
-
-		// Update previous positions
-		this.previousMousePos.copy(currentMousePos)
-		this.previousUV.copy(currentUV)
 	}
 
 	onPointerUp(_event: NormalizedPointerEvent): void {
+		const storeState = this.context.store.getState()
 		this.isActive = false
 		this.context.controls.enabled = true
 		this.uAxis = null
 		this.vAxis = null
+		storeState.setIsBrushActive(false)
 	}
 }

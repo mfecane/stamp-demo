@@ -30,10 +30,14 @@ export interface StampState {
 	setIsMoveMode: (enabled: boolean) => void
 	isBrushMode: boolean
 	setIsBrushMode: (enabled: boolean) => void
+	isBrushActive: boolean
+	setIsBrushActive: (active: boolean) => void
 	brushStrokes: Array<{ points: Array<{ x: number; y: number }> }>
 	addBrushStrokePoint: (point: { x: number; y: number }) => void
 	startNewBrushStroke: () => void
 	clearBrushStrokes: () => void
+	latticeNeedsRender: boolean
+	setLatticeNeedsRender: (needs: boolean) => void
 }
 
 export const useStampStore = create<StampState>((set, get) => ({
@@ -61,6 +65,8 @@ export const useStampStore = create<StampState>((set, get) => ({
 	setIsMoveMode: (enabled) => set({ isMoveMode: enabled }),
 	isBrushMode: false,
 	setIsBrushMode: (enabled) => set({ isBrushMode: enabled }),
+	isBrushActive: false,
+	setIsBrushActive: (active) => set({ isBrushActive: active }),
 	brushStrokes: [],
 	addBrushStrokePoint: (point) => {
 		const state = get()
@@ -78,5 +84,7 @@ export const useStampStore = create<StampState>((set, get) => ({
 		set({ brushStrokes: [...state.brushStrokes, { points: [] }] })
 	},
 	clearBrushStrokes: () => set({ brushStrokes: [] }),
+	latticeNeedsRender: false,
+	setLatticeNeedsRender: (needs) => set({ latticeNeedsRender: needs }),
 }))
 

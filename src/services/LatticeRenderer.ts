@@ -36,6 +36,7 @@ export class LatticeRenderer {
 	/**
 	 * Renders the lattice mesh to the render target texture.
 	 * Returns the texture that can be applied to the tube mesh.
+	 * Handles x-axis wrapping for cylinder-like surface rendering.
 	 */
 	renderLatticeToTexture(
 		latticeMesh: THREE.Mesh | null,
@@ -49,9 +50,39 @@ export class LatticeRenderer {
 		const meshClone = latticeMesh.clone()
 		meshClone.updateMatrixWorld(true)
 
-		// Add mesh clone to scene
+		// Calculate bounding box in world space (UV space)
+		const box = new THREE.Box3().setFromObject(meshClone)
+		const minX = box.min.x
+		const maxX = box.max.x
+
+		// Check if mesh intersects x-axis boundaries (0 or 1 in UV space)
+		const needsLeftWrap = minX < 0
+		const needsRightWrap = maxX > 1
+
+		// Add original mesh clone to scene
 		this.renderScene.clear()
 		this.renderScene.add(meshClone)
+
+		// Add wrapped copies if needed for cylinder-like wrapping
+		const clonesToDispose: THREE.Mesh[] = [meshClone]
+
+		if (needsLeftWrap) {
+			// Mesh extends beyond left boundary (x < 0), add copy at x+1
+			const leftWrapClone = meshClone.clone()
+			leftWrapClone.position.x += 1
+			leftWrapClone.updateMatrixWorld(true)
+			this.renderScene.add(leftWrapClone)
+			clonesToDispose.push(leftWrapClone)
+		}
+
+		if (needsRightWrap) {
+			// Mesh extends beyond right boundary (x > 1), add copy at x-1
+			const rightWrapClone = meshClone.clone()
+			rightWrapClone.position.x -= 1
+			rightWrapClone.updateMatrixWorld(true)
+			this.renderScene.add(rightWrapClone)
+			clonesToDispose.push(rightWrapClone)
+		}
 
 		// Update camera
 		this.camera.updateMatrixWorld()
@@ -63,15 +94,15 @@ export class LatticeRenderer {
 		mainRenderer.render(this.renderScene, this.camera)
 		mainRenderer.setRenderTarget(null) // Reset to default render target
 
-		// Remove mesh clone from render scene
-		this.renderScene.remove(meshClone)
-
-		// Dispose of mesh clone resources to prevent memory leaks
-		meshClone.geometry.dispose()
-		if (Array.isArray(meshClone.material)) {
-			meshClone.material.forEach((mat) => mat.dispose())
-		} else {
-			meshClone.material.dispose()
+		// Remove all clones from render scene and dispose
+		this.renderScene.clear()
+		for (const clone of clonesToDispose) {
+			clone.geometry.dispose()
+			if (Array.isArray(clone.material)) {
+				clone.material.forEach((mat) => mat.dispose())
+			} else {
+				clone.material.dispose()
+			}
 		}
 
 		// Return the render target texture

@@ -11,7 +11,6 @@ export function useLatticeRendering(): void {
 	const store = useEditorStore()
 	const lastMeshStateRef = useRef<{
 		mesh: THREE.Mesh | null
-		verticesHash: string
 	} | null>(null)
 
 	useEffect(() => {
@@ -34,15 +33,12 @@ export function useLatticeRendering(): void {
 			const geometry = latticeMesh.geometry as THREE.PlaneGeometry
 			const positions = geometry.attributes.position
 
-			// Create a simple hash of vertex positions to detect changes
-			const positionsArray = positions.array
-			const verticesHash = `${positionsArray[0]},${positionsArray[1]},${positionsArray[2]},${positionsArray[positionsArray.length - 3]},${positionsArray[positionsArray.length - 2]},${positionsArray[positionsArray.length - 1]}`
-
 			const lastState = lastMeshStateRef.current
+			// Check if positions need update (set by deformation service), mesh changed, or render flag is set
 			const hasChanged = !lastState ||
 				lastState.mesh !== latticeMesh ||
-				verticesHash !== lastState.verticesHash ||
-				positions.needsUpdate
+				positions.needsUpdate ||
+				store.latticeNeedsRender
 
 			if (hasChanged) {
 				// Render lattice mesh to texture
@@ -62,11 +58,13 @@ export function useLatticeRendering(): void {
 				// Update last state
 				lastMeshStateRef.current = {
 					mesh: latticeMesh,
-					verticesHash,
 				}
 
 				// Reset needsUpdate flag
 				positions.needsUpdate = false
+
+				// Clear render flag
+				store.setLatticeNeedsRender(false)
 			}
 		}
 

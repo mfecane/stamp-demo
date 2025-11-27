@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as THREE from 'three'
-import { Maximize2, Trash2, Move, RotateCw, Check, Paintbrush, RotateCcw } from 'lucide-react'
+import { Maximize2, Trash2, Move, RotateCw, Check, Grid2x2, RotateCcw } from 'lucide-react'
 import { useEditorStore } from '@/store/editorStore'
 import { worldToScreen } from '@/lib/utils'
 import { CanvasRenderer } from '@/services/CanvasRenderer'
@@ -262,7 +262,7 @@ export function StampContextMenu() {
 							</button>
 						</TooltipTrigger>
 						<TooltipContent>
-							<p>Exit brush</p>
+							<p>Exit warp</p>
 						</TooltipContent>
 					</Tooltip>
 					<Tooltip>
@@ -339,11 +339,11 @@ export function StampContextMenu() {
 							onClick={handleBrush}
 							className="p-2 hover:bg-accent rounded transition-colors"
 						>
-							<Paintbrush className="w-4 h-4" />
+							<Grid2x2 className="w-4 h-4" />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent>
-						<p>Brush</p>
+						<p>Warp</p>
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>

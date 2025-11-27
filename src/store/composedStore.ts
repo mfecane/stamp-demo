@@ -42,10 +42,14 @@ export interface EditorState {
 	setIsMoveMode: ReturnType<typeof useStampStore>['setIsMoveMode']
 	isBrushMode: ReturnType<typeof useStampStore>['isBrushMode']
 	setIsBrushMode: ReturnType<typeof useStampStore>['setIsBrushMode']
+	isBrushActive: ReturnType<typeof useStampStore>['isBrushActive']
+	setIsBrushActive: ReturnType<typeof useStampStore>['setIsBrushActive']
 	brushStrokes: ReturnType<typeof useStampStore>['brushStrokes']
 	addBrushStrokePoint: ReturnType<typeof useStampStore>['addBrushStrokePoint']
 	startNewBrushStroke: ReturnType<typeof useStampStore>['startNewBrushStroke']
 	clearBrushStrokes: ReturnType<typeof useStampStore>['clearBrushStrokes']
+	latticeNeedsRender: ReturnType<typeof useStampStore>['latticeNeedsRender']
+	setLatticeNeedsRender: ReturnType<typeof useStampStore>['setLatticeNeedsRender']
 
 	// Texture
 	canvas: ReturnType<typeof useTextureStore>['canvas']
@@ -104,10 +108,14 @@ function buildEditorState(): EditorState {
 		setIsMoveMode: stampState.setIsMoveMode,
 		isBrushMode: stampState.isBrushMode,
 		setIsBrushMode: stampState.setIsBrushMode,
+		isBrushActive: stampState.isBrushActive,
+		setIsBrushActive: stampState.setIsBrushActive,
 		brushStrokes: stampState.brushStrokes,
 		addBrushStrokePoint: stampState.addBrushStrokePoint,
 		startNewBrushStroke: stampState.startNewBrushStroke,
 		clearBrushStrokes: stampState.clearBrushStrokes,
+		latticeNeedsRender: stampState.latticeNeedsRender,
+		setLatticeNeedsRender: stampState.setLatticeNeedsRender,
 		canvas: textureState.canvas,
 		setCanvas: textureState.setCanvas,
 		texture: textureState.texture,
@@ -165,10 +173,14 @@ export const useEditorStore = (): EditorState => {
 		setIsMoveMode: stampStore.setIsMoveMode,
 		isBrushMode: stampStore.isBrushMode,
 		setIsBrushMode: stampStore.setIsBrushMode,
+		isBrushActive: stampStore.isBrushActive,
+		setIsBrushActive: stampStore.setIsBrushActive,
 		brushStrokes: stampStore.brushStrokes,
 		addBrushStrokePoint: stampStore.addBrushStrokePoint,
 		startNewBrushStroke: stampStore.startNewBrushStroke,
 		clearBrushStrokes: stampStore.clearBrushStrokes,
+		latticeNeedsRender: stampStore.latticeNeedsRender,
+		setLatticeNeedsRender: stampStore.setLatticeNeedsRender,
 
 		// Texture
 		canvas: textureStore.canvas,

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { BRUSH_CONSTANTS } from '@/interaction/tools/constants'
+import { useStampStore } from '@/store/stampStore'
 
 /**
  * Smooth falloff function using smoothstep for smooth transitions.
@@ -50,14 +51,22 @@ export class LatticeDeformationService {
 		// Iterate through all vertices
 		const vertexCount = positions.count
 		for (let i = 0; i < vertexCount; i++) {
-			// Get current vertex position in local mesh space (before mesh transform)
+			// Get current vertex position in local mesh space (for applying deformation)
 			const localVertex = new THREE.Vector3().fromBufferAttribute(positions, i)
 
-			// Transform vertex from local mesh space to UV space using mesh transform
-			const uvVertex = localVertex.clone().applyMatrix4(meshMatrix)
+			// Get original vertex position in local mesh space (for distance calculation)
+			const originalVertex = new THREE.Vector3(
+				originalPositions[i * 3],
+				originalPositions[i * 3 + 1],
+				originalPositions[i * 3 + 2]
+			)
+
+			// Transform original vertex from local mesh space to UV space using mesh transform
+			// This ensures distance is calculated from initial positions, not current deformed positions
+			const uvVertex = originalVertex.clone().applyMatrix4(meshMatrix)
 			const vertexUV = new THREE.Vector2(uvVertex.x, uvVertex.y)
 
-			// Calculate distance from brush point to vertex in UV space
+			// Calculate distance from brush point to vertex in UV space (using original position)
 			const distance = vertexUV.distanceTo(brushUV)
 
 			// Apply smooth falloff
@@ -96,6 +105,9 @@ export class LatticeDeformationService {
 
 		// Only mark as needing update if positions actually changed
 		positions.needsUpdate = true
+		
+		// Set flag to trigger texture re-render
+		useStampStore.getState().setLatticeNeedsRender(true)
 	}
 }
 

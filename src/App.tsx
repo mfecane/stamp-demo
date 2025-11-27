@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ThreeScene from '@/components/ThreeScene'
 import GuiPanel from '@/components/GuiPanel'
+import { BrushOverlay } from '@/components/BrushOverlay'
 import { useEditorStore } from '@/store/editorStore'
 
 function App() {
@@ -17,10 +18,11 @@ function App() {
         isImageActive={isImageReady}
         isStampPlaced={isStampPlaced}
       />
-      <div className="flex-1 h-full" style={{ minWidth: 0, minHeight: 0 }}>
+      <div className="flex-1 h-full relative" style={{ minWidth: 0, minHeight: 0 }}>
         <ThreeScene
           imageUrl={imageUrl}
         />
+        <BrushOverlay />
       </div>
     </div>
   )

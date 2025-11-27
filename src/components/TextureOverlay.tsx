@@ -3,6 +3,7 @@ import { useEditorStore } from '@/store/editorStore'
 import * as THREE from 'three'
 import { Image, X } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { BRUSH_CONSTANTS } from '@/interaction/tools/constants'
 
 /**
  * Texture overlay component that displays the render target texture.
@@ -67,8 +68,8 @@ export function TextureOverlay() {
 				}
 				ctx.putImageData(imageData, 0, 0)
 
-				// Draw brush strokes on top of texture
-				if (brushStrokes.length > 0) {
+				// Draw brush strokes on top of texture (if enabled)
+				if (BRUSH_CONSTANTS.SHOW_BRUSH_STROKES && brushStrokes.length > 0) {
 					ctx.strokeStyle = '#ef4444'
 					ctx.lineWidth = 2
 					ctx.lineCap = 'round'

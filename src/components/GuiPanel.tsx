@@ -43,9 +43,6 @@ function GuiPanel({ onImageSelect, isImageActive, isStampPlaced }: GuiPanelProps
         
         <div className="space-y-4">
           <div>
-            <p className="block text-sm font-medium text-foreground mb-2">
-              {isDisabled ? 'Stamp already placed' : 'Drag image to place stamp'}
-            </p>
             <div
               onClick={handleImageClick}
               draggable={!isDisabled}
@@ -66,11 +63,11 @@ function GuiPanel({ onImageSelect, isImageActive, isStampPlaced }: GuiPanelProps
                 draggable={false}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {isDisabled
-                ? 'A stamp has already been placed on the mesh. Remove it to place a new one.'
-                : 'Drag the image above onto the 3D mesh to place the stamp.'}
-            </p>
+            {isDisabled && (
+              <p className="text-xs text-muted-foreground mt-2">
+                A stamp has already been placed on the mesh. Remove it to place a new one.
+              </p>
+            )}
           </div>
         </div>
       </div>
