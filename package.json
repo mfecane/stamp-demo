@@ -2,11 +2,12 @@
 	"name": "editor",
 	"private": true,
 	"version": "0.0.0",
+	"license": "MIT",
 	"type": "module",
-	"homepage": "https://mfecane.github.io/stamp-demo/",
+	"homepage": "https://mfecane.github.io/tattoo-editor-demo/",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/mfecane/stamp-demo.git"
+		"url": "git@github.com:mfecane/tattoo-editor-demo.git"
 	},
 	"scripts": {
 		"dev": "vite",
